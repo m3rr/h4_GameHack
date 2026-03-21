@@ -18,7 +18,7 @@ pub enum MemoryError {
 }
 
 /// A high-performance wrapper for Win32 memory operations.
-/// Follows Rule 4 (Explicit Error Handling) and Rule 11 (Mandatory Logging).
+/// Handles explicit error reporting and mandatory trace logging.
 pub struct MemoryManager {
     pub process_handle: HANDLE,
     pub pid: u32,
@@ -29,7 +29,7 @@ unsafe impl Sync for MemoryManager {}
 
 impl MemoryManager {
     /// Attaches to a running process by its PID.
-    /// Landmark: h4_engine/memory.rs - MemoryManager::attach
+    /// Attaches to a running process by its PID.
     pub fn attach(pid: u32) -> Result<Self, MemoryError> {
         info!("Attempting to attach to process with PID: {}", pid);
         
@@ -66,7 +66,7 @@ impl MemoryManager {
     }
 
     /// Reads a value of type T from the process memory at the given address.
-    /// Landmark: h4_engine/memory.rs - MemoryManager::read
+    /// Reads a value of type T from the process memory at the given address.
     pub fn read<T: Copy>(&self, address: usize) -> Result<T, MemoryError> {
         debug!("Reading {} bytes from address {:X}", std::mem::size_of::<T>(), address);
         
@@ -96,7 +96,7 @@ impl MemoryManager {
     }
 
     /// Writes a value of type T to the process memory at the given address.
-    /// Landmark: h4_engine/memory.rs - MemoryManager::write
+    /// Writes a value of type T to the process memory at the given address.
     pub fn write<T: Copy>(&self, address: usize, value: T) -> Result<(), MemoryError> {
         info!("Writing {} bytes to address {:X}", std::mem::size_of::<T>(), address);
         

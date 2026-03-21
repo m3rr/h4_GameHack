@@ -10,7 +10,7 @@ pub struct ManualScanner;
 
 impl ManualScanner {
     /// Scans process memory for a specific value.
-    /// Landmark: h4_engine/manual.rs - ManualScanner::scan_for_value
+    /// MemoryManager search implementation.
     pub fn scan_for_value<T: Copy + PartialEq + Send + Sync>(
         manager: &MemoryManager,
         target_value: T,
@@ -23,11 +23,11 @@ impl ManualScanner {
         let mut regions_scanned = 0;
         let mut total_bytes_scanned = 0;
 
-        info!("NUCLEAR DEBUG: Starting Manual Value Scan.");
+        info!("H4_ENGINE: Starting Manual Value Scan.");
         
         // SELF-SCAN PROTECTION
         if manager.pid == std::process::id() {
-            info!("NUCLEAR DEBUG: Self-scan detected and blocked. Safety first.");
+            info!("H4_ENGINE: Self-scan detected and blocked. Safety first.");
             return results;
         }
 
@@ -37,7 +37,7 @@ impl ManualScanner {
         };
         let first_byte = target_bytes[0];
         
-        // REUSE BUFFER (Rule 13 Performance)
+        // REUSE BUFFER ( Optimized Performance )
         const CHUNK_SIZE: usize = 1024 * 1024 * 2;
         let mut buffer = vec![0u8; CHUNK_SIZE];
 
@@ -49,9 +49,9 @@ impl ManualScanner {
                 std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
             )
         } != 0 {
-            // Check for CANCEL (Rule 15 Hot Reload / responsiveness)
+            // Check for CANCEL ( Signal Responsiveness )
             if cancel_token.load(Ordering::Relaxed) {
-                info!("NUCLEAR DEBUG: Scan cancelled by user.");
+                info!("H4_ENGINE: Scan cancelled by user.");
                 return results;
             }
 
@@ -104,7 +104,7 @@ impl ManualScanner {
                                     if std::ptr::read_unaligned(potential_ptr) == target_value {
                                         results.push(region_start + current_offset + offset);
                                         if results.len() >= 1000 {
-                                            info!("NUCLEAR DEBUG: Result cap reached (1000). Aborting scan.");
+                                            info!("H4_ENGINE: Result cap reached (1000). Aborting scan.");
                                             return results;
                                         }
                                     }
@@ -125,7 +125,7 @@ impl ManualScanner {
             if address == 0 { break; }
         }
 
-        info!("NUCLEAR DEBUG: Manual scan complete in {:?}. Scanned {} regions ({} bytes). Found {} results.", 
+        info!("H4_ENGINE: Manual scan complete in {:?}. Scanned {} regions ({} bytes). Found {} results.", 
             scan_start.elapsed(), regions_scanned, total_bytes_scanned, results.len());
         results
     }

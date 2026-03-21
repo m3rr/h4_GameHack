@@ -11,3 +11,10 @@
 /*.log
 # Slint cache
 /.slint-cache
+/H4_DEVELOPER_EXPERIENCE.md
+/debug_report.md
+/last_copy.txt
+/last_errors.txt
+/rund_log.txt
+/h4_vision/build_errors*.txt
+/h4_vision/check_errors*.txt

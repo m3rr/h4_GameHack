@@ -72,11 +72,11 @@ impl AOBScanner {
         let mut regions_scanned = 0;
         let mut total_bytes_scanned = 0;
 
-        info!("NUCLEAR DEBUG: Starting AOB scan. Pattern size: {}", self.pattern.len());
+        info!("H4_ENGINE: Starting AOB scan. Pattern size: {}", self.pattern.len());
 
         // SELF-SCAN PROTECTION
         if manager.pid == std::process::id() {
-            info!("NUCLEAR DEBUG: Self-scan detected and blocked. Safety first.");
+            info!("H4_ENGINE: Self-scan detected and blocked. Safety first.");
             return results;
         }
 
@@ -94,7 +94,7 @@ impl AOBScanner {
         } != 0 {
             // Check for CANCEL
             if cancel_token.load(Ordering::Relaxed) {
-                info!("NUCLEAR DEBUG: AOB Scan cancelled by user.");
+                info!("H4_ENGINE: AOB Scan cancelled by user.");
                 return results;
             }
 
@@ -139,7 +139,7 @@ impl AOBScanner {
                             
                             // UI CRASH PROTECTION: Cap results to prevent Slint from dying on huge result sets
                             if results.len() >= 1000 {
-                                info!("NUCLEAR DEBUG: Result cap reached (1000). Aborting scan.");
+                                info!("H4_ENGINE: Result cap reached (1000). Aborting scan.");
                                 return results;
                             }
                             
@@ -165,7 +165,7 @@ impl AOBScanner {
             if address == 0 { break; }
         }
 
-        info!("NUCLEAR DEBUG: Scan complete in {:?}. Scanned {} regions ({} bytes). Found {} matches.", 
+        info!("H4_ENGINE: Scan complete in {:?}. Scanned {} regions ({} bytes). Found {} matches.", 
             scan_start.elapsed(), regions_scanned, total_bytes_scanned, results.len());
         results
     }

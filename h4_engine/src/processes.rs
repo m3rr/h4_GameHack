@@ -6,12 +6,12 @@ use h4_shared::ProcessEntry;
 use log::{error, info};
 
 /// ProcessScanner handles locating and listing active game processes.
-/// Follows Rule 1 (No Placeholders) and Rule 20 (Clairvoyant Development).
+/// Comprehensive process scanning and categorization logic.
 pub struct ProcessScanner;
 
 impl ProcessScanner {
     /// Returns a list of all currently running processes.
-    /// Landmark: h4_engine/processes.rs - ProcessScanner::list_processes
+    /// Returns a list of all currently running processes.
     pub fn list_processes() -> Vec<ProcessEntry> {
         info!("H4_Engine: Commencing system-wide process scan...");
         let mut processes = Vec::new();
@@ -36,7 +36,7 @@ impl ProcessScanner {
                             .map(|&c| c as u8 as char)
                             .collect::<String>();
 
-                        // Handle special system names for clarity (Eliminating placeholder ambiguity - Rule 1)
+                        // Handle special system names for clarity
                         if entry.th32ProcessID == 0 {
                             name = "[System Idle Process]".to_string();
                         } else if entry.th32ProcessID == 4 {

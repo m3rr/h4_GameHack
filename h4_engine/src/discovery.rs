@@ -137,7 +137,7 @@ impl DiscoveryEngine {
                             if bytes_read == 4 {
                                 let d = i32::from_le_bytes(disp);
                                 target_addr = (ptr_loc + 4).wrapping_add(d as usize);
-                                debug!("NUCLEAR DEBUG: Resolved Relative Pointer at {:X} -> {:X}", ptr_loc, target_addr);
+                                debug!("H4_ENGINE: Resolved Relative Pointer at {:X} -> {:X}", ptr_loc, target_addr);
                             }
                         }
 

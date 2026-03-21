@@ -28,7 +28,7 @@ impl log::Log for DebugLogger {
     fn enabled(&self, metadata: &log::Metadata) -> bool { metadata.level() <= log::Level::Debug }
     fn log(&self, record: &log::Record) {
         if self.enabled(record.metadata()) {
-            // RECURSION SAFEGUARD (Rule 19 Loop Detection)
+            // RECURSION SAFEGUARD: Slint/Winit internal event filtering
             // Block logs from Slint or Winit that are triggered by the UI thread update
             if record.target().starts_with("slint") || record.target().starts_with("winit") {
                 return;
@@ -85,7 +85,7 @@ impl FlavorTextManager {
 
 #[tokio::main]
 async fn main() -> Result<(), slint::PlatformError> {
-    // PERSISTENT CRASH LOGGING (Rule 4 & 11)
+    // PERSISTENT CRASH LOGGING
     std::panic::set_hook(Box::new(|info| {
         let msg = format!("CRASH DETECTED: {}\nLocation: {:?}", info.to_string(), info.location());
         let _ = fs::write("crash_log.txt", &msg);
@@ -103,7 +103,7 @@ async fn main() -> Result<(), slint::PlatformError> {
     let dbg = DebugWindow::new()?;
     info!("H4_Vision: UI created in {:?}", start_time.elapsed());
     
-    // CENTER WINDOW USING WIN32 ( Robust rule-compliant centering )
+    // CENTER WINDOW USING WIN32 ( Centering logic )
     #[cfg(target_os = "windows")]
     {
         use windows::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};

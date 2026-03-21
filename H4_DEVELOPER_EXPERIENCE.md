@@ -26,8 +26,8 @@ Under the hood, we have a modular workspace divided into three primary nodes. Se
 
 ---
 
-## ☢️ CHAPTER 3: NUCLEAR_DEBUGGING // STABILITY_PROTOCOLS
-If you've ever used a memory scanner that hangs or crashes during a large search, you know the frustration. We solved that with the **NUCLEAR DEBUGGING PROTOCOL**.
+## 🧪 CHAPTER 3: SYSTEM_TELEMETRY // STABILITY_PROTOCOLS
+If you've ever used a memory scanner that hangs or crashes during a large search, you know the frustration. We solved that with the **H4_ENGINE TELEMETRY PROTOCOL**.
 
 ### 🛡️ Crash Protection
 The engine has a built-in **1,000-match cap**. We found that rendering 10,000 results in a single UI frame is a death sentence for responsiveness. By capping the "Live" results and allowing you to filter them, we keep the app lag-free and stable at all times.

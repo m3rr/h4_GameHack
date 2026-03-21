@@ -158,7 +158,7 @@ component H4Dropdown inherits Rectangle {
     in-out property <int> selected_idx: 0;
     in-out property <string> selected_text: options[selected_idx];
     in-out property <bool> open: false;
-    z: open ? 1000 : 1; // Nuclear Z-order when open to override siblings
+    z: open ? 1000 : 1; // High Z-order when open to override siblings
     callback changed(string);
     
     dropdown_body := Rectangle {
