@@ -1,0 +1,35 @@
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Checking h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+error[E0382]: borrow of moved value: `ui_anim`
+  --> h4_vision\src\main.rs:91:28
+   |
+75 |             let set_splash = move |opacity: f32, glitch: f32, jitter: f32, rgb: f32| {
+   |                              ------------------------------------------------------- value moved into closure here
+76 |                 let u_weak = ui_anim.clone();
+   |                              ------- variable moved due to use in closure
+...
+91 |             let ui_final = ui_anim.clone();
+   |                            ^^^^^^^ value borrowed here after move
+   |
+   = note: move occurs because `ui_anim` has type `slint::Weak<MainWindow>`, which does not implement the `Copy` trait
+
+warning: unused variable: `ui_refresh`
+   --> h4_vision\src\main.rs:127:9
+    |
+127 |     let ui_refresh = ui_handle.clone();
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_ui_refresh`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0382`.
+warning: `h4_vision` (bin "h4_vision") generated 1 warning
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error: could not compile `h4_vision` (bin "h4_vision") due to 1 previous error; 1 warning emitted

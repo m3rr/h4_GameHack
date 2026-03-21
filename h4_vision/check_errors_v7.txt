@@ -1,0 +1,7 @@
+   Compiling h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.18s

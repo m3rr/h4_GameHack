@@ -1,0 +1,25 @@
+   Compiling h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error[E0599]: no method named `set_icon` found for reference `&Window` in the current scope
+  --> h4_vision\src\main.rs:93:25
+   |
+93 |         splash.window().set_icon(icon);
+   |                         ^^^^^^^^ method not found in `&Window`
+
+error[E0599]: no method named `set_icon` found for reference `&Window` in the current scope
+   --> h4_vision\src\main.rs:167:21
+    |
+167 |         ui.window().set_icon(icon);
+    |                     ^^^^^^^^ method not found in `&Window`
+
+For more information about this error, try `rustc --explain E0599`.
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error: could not compile `h4_vision` (bin "h4_vision") due to 2 previous errors

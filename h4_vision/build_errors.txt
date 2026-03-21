@@ -1,0 +1,56 @@
+warning: unused variable: `region_timer`
+   --> h4_engine\src\aob.rs:100:21
+    |
+100 | ...     let region_timer = std::time::In...
+    |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_region_timer`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+warning: `h4_engine` (lib) generated 1 warning (run `cargo fix --lib -p h4_engine` to apply 1 suggestion)
+error: failed to run custom build command for `h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)`
+
+Caused by:
+  process didn't exit successfully: `D:\PROJECTS\h4_GameHack\target\debug\build\h4_vision-39f4bc1af16f5a51\build-script-build` (exit code: 101)
+  --- stderr
+  error: The binding for the property 'layoutinfo-h' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:263:36
+      |
+  263 |                 for entry in logs: HorizontalLayout {
+      |                                    ^^^^^^^^^^^^^^^^^
+      |
+  error: The binding for the property 'layoutinfo-h' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:261:13
+      |
+  261 |             VerticalBox {
+      |             ^^^^^^^^^^^^
+  error: The binding for the property 'min-width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:261:13
+      |
+  261 |             VerticalBox {
+      |             ^^^^^^^^^^^^
+  error: The binding for the property 'viewport-width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
+     --> builtin:/fluent/scrollview.slint:174:18
+      |
+  174 |     flickable := Flickable {
+      |                  ^^^^^^^^^^
+  error: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
+  error: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:261:13
+      |
+  261 |             VerticalBox {
+      |             ^^^^^^^^^^^^
+  error: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:263:36
+      |
+  263 |                 for entry in logs: HorizontalLayout {
+      |                                    ^^^^^^^^^^^^^^^^^
+  error: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:271:32
+      |
+  271 |                         width: parent.width - 80px;
+      |                                ^^^^^^^^^^^^^^^^^^^^
+
+  thread 'main' (10028) panicked at h4_vision\build.rs:2:43:
+  called `Result::unwrap()` on an `Err` value: CompileError(["D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:263: The binding for the property 'layoutinfo-h' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:261: The binding for the property 'layoutinfo-h' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:261: The binding for the property 'min-width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "builtin:/fluent/scrollview.slint:174: The binding for the property 'viewport-width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:261: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:263: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:271: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)"])
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

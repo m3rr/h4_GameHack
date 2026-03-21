@@ -1,0 +1,68 @@
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Checking h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+error[E0277]: `Rc<VecModel<ScanEntry>>` cannot be sent between threads safely
+    --> h4_vision\src\main.rs:302:55
+     |
+ 302 |                   let _ = slint::invoke_from_event_loop(move || {
+     |                           ----------------------------- ^------
+     |                           |                             |
+     |  _________________________|_____________________________within this `{closure@h4_vision\src\main.rs:302:55: 302:62}`
+     | |                         |
+     | |                         required by a bound introduced by this call
+ 303 | |                     if let Some(u) = ui_final.upgrade() {
+ 304 | |                         let f_mode = u.get_filter_mode();
+ 305 | |                         let (mut res_m, mut poll_m) = (r.lock().unwrap(), p.lock().unwrap());
+...    |
+ 324 | |                 });
+     | |_________________^ `Rc<VecModel<ScanEntry>>` cannot be sent between threads safely
+     |
+     = help: within `{closure@h4_vision\src\main.rs:302:55: 302:62}`, the trait `Send` is not implemented for `Rc<VecModel<ScanEntry>>`
+note: required because it's used within this closure
+    --> h4_vision\src\main.rs:302:55
+     |
+ 302 |                 let _ = slint::invoke_from_event_loop(move || {
+     |                                                       ^^^^^^^
+note: required by a bound in `slint::invoke_from_event_loop`
+    --> C:\Users\h4dev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\i-slint-core-1.15.1\api.rs:1039:53
+     |
+1039 | pub fn invoke_from_event_loop(func: impl FnOnce() + Send + 'static) -> Result<(), EventLoopError> {
+     |                                                     ^^^^ required by this bound in `invoke_from_event_loop`
+
+error: future cannot be sent between threads safely
+   --> h4_vision\src\main.rs:282:13
+    |
+282 | / ...   tokio::spawn(async move {
+283 | | ...       let status = f.lock().unwrap().get_next();
+284 | | ...       let ui_status = ui_inner.clone();
+285 | | ...       let _ = slint::invoke_from_event_loop(move || { if let Some(u) = ui_status.upgrade() { u.set_scan_status(SharedString::from(sta...
+...   |
+324 | | ...       });
+325 | | ...   });
+    | |________^ future created by async block is not `Send`
+    |
+    = help: within `{async block@h4_vision\src\main.rs:282:26: 282:36}`, the trait `Send` is not implemented for `Rc<VecModel<ScanEntry>>`
+note: captured value is not `Send`
+   --> h4_vision\src\main.rs:299:39
+    |
+299 |                 let results_m_inner = results_model_manual.clone();
+    |                                       ^^^^^^^^^^^^^^^^^^^^ has type `Rc<VecModel<ScanEntry>>` which is not `Send`
+note: required by a bound in `tokio::spawn`
+   --> C:\Users\h4dev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tokio-1.50.0\src\task\spawn.rs:176:21
+    |
+174 |     pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
+    |            ----- required by a bound in this function
+175 |     where
+176 |         F: Future + Send + 'static,
+    |                     ^^^^ required by this bound in `spawn`
+
+For more information about this error, try `rustc --explain E0277`.
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error: could not compile `h4_vision` (bin "h4_vision") due to 2 previous errors

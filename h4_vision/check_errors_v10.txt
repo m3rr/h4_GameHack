@@ -1,0 +1,19 @@
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Checking h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+error[E0599]: no method named `get_process_name` found for struct `MemoryManager` in the current scope
+   --> h4_vision\src\main.rs:221:32
+    |
+221 |                 let name = mgr.get_process_name().unwrap_or_default();
+    |                                ^^^^^^^^^^^^^^^^ method not found in `MemoryManager`
+
+For more information about this error, try `rustc --explain E0599`.
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error: could not compile `h4_vision` (bin "h4_vision") due to 1 previous error

@@ -1,0 +1,259 @@
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Checking h4_engine v0.1.0 (D:\PROJECTS\h4_GameHack\h4_engine)
+    Checking h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+error[E0382]: use of moved value: `ui_handle`
+   --> h4_vision\src\main.rs:139:47
+    |
+100 |         let set_splash = move |opacity: f32, glitch: f32, jitter: f32, rgb: f32| {
+    |                          ------------------------------------------------------- value moved into closure here
+101 |             let u_weak = ui_handle.clone();
+    |                          --------- variable moved due to use in closure
+...
+139 |         let _ = slint::invoke_from_event_loop(move || {
+    |                                               ^^^^^^^ value used here after move
+140 |             if let Some(u) = ui_handle.upgrade() { u.set_show_splash(false); }
+    |                              --------- use occurs due to use in closure
+    |
+    = note: move occurs because `ui_handle` has type `slint::Weak<MainWindow>`, which does not implement the `Copy` trait
+
+error[E0382]: borrow of moved value: `ui_handle`
+   --> h4_vision\src\main.rs:266:35
+    |
+252 | ...   let _ = slint::invoke_from_event_loop(move || { if let Some(u) = ui_handle.upgrade() { u.set_scan_status(SharedString::from(status)...
+    |                                             -------                    --------- variable moved due to use in closure
+    |                                             |
+    |                                             value moved into closure here
+...
+266 | ...   let ui_handle_final = ui_handle.clone();
+    |                             ^^^^^^^^^ value borrowed here after move
+    |
+    = note: move occurs because `ui_handle` has type `slint::Weak<MainWindow>`, which does not implement the `Copy` trait
+
+error[E0382]: borrow of moved value: `ui_handle`
+   --> h4_vision\src\main.rs:308:35
+    |
+303 | ...   let _ = slint::invoke_from_event_loop(move || { if let Some(u) = ui_handle.upgrade() { u.set_scan_status(SharedString::from(status)...
+    |                                             -------                    --------- variable moved due to use in closure
+    |                                             |
+    |                                             value moved into closure here
+...
+308 | ...   let ui_handle_final = ui_handle.clone();
+    |                             ^^^^^^^^^ value borrowed here after move
+    |
+    = note: move occurs because `ui_handle` has type `slint::Weak<MainWindow>`, which does not implement the `Copy` trait
+
+error[E0382]: use of moved value: `ui_handle`
+   --> h4_vision\src\main.rs:334:24
+    |
+145 |     let ui_handle = ui.as_weak();
+    |         --------- move occurs because `ui_handle` has type `slint::Weak<MainWindow>`, which does not implement the `Copy` trait
+...
+327 |     ui.on_save_profile(move |name: SharedString| {
+    |                        ------------------------- value moved into closure here
+328 |         if name.is_empty() { return; }
+329 |         let ui = ui_handle.upgrade().unwrap();
+    |                  --------- variable moved due to use in closure
+...
+334 |     ui.on_load_profile(move |name: SharedString| {
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^ value used here after move
+335 |         let ui = ui_handle.upgrade().unwrap();
+    |                  --------- use occurs due to use in closure
+    |
+help: consider cloning the value before moving it into the closure
+    |
+327 ~     let value = ui_handle.clone();
+328 ~     ui.on_save_profile(move |name: SharedString| {
+329 |         if name.is_empty() { return; }
+330 ~         let ui = value.upgrade().unwrap();
+    |
+
+error[E0382]: use of moved value: `all_scan_results`
+   --> h4_vision\src\main.rs:334:24
+    |
+155 |     let all_scan_results = Arc::new(Mutex::new(Vec::<h4_shared::ScanResult>::new()));
+    |         ---------------- move occurs because `all_scan_results` has type `Arc<std::sync::Mutex<Vec<ScanResult>>>`, which does not implement the `Copy` trait
+...
+327 |     ui.on_save_profile(move |name: SharedString| {
+    |                        ------------------------- value moved into closure here
+...
+330 |         let data = ProfileData { theme_idx: ui.global::<H4Themes>().get_current_theme_idx(), scan_results: all_scan_results.lock().unwrap...
+    |                                                                                                            ---------------- variable moved due to use in closure
+...
+334 |     ui.on_load_profile(move |name: SharedString| {
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^ value used here after move
+...
+339 |                 let mut master = all_scan_results.lock().unwrap();
+    |                                  ---------------- use occurs due to use in closure
+    |
+help: consider cloning the value before moving it into the closure
+    |
+327 ~     let value = all_scan_results.clone();
+328 ~     ui.on_save_profile(move |name: SharedString| {
+329 |         if name.is_empty() { return; }
+330 |         let ui = ui_handle.upgrade().unwrap();
+331 ~         let data = ProfileData { theme_idx: ui.global::<H4Themes>().get_current_theme_idx(), scan_results: value.lock().unwrap().clone(), active_process_name: Some(ui.get_active_process_name().to_string()) };
+    |
+
+error[E0382]: use of moved value: `ui_handle`
+   --> h4_vision\src\main.rs:359:30
+    |
+145 |     let ui_handle = ui.as_weak();
+    |         --------- move occurs because `ui_handle` has type `slint::Weak<MainWindow>`, which does not implement the `Copy` trait
+...
+334 |     ui.on_load_profile(move |name: SharedString| {
+    |                        ------------------------- value moved into closure here
+335 |         let ui = ui_handle.upgrade().unwrap();
+    |                  --------- variable moved due to use in closure
+...
+359 |     ui.on_minimize_requested(move || { ui_handle.upgrade().unwrap().window().set_minimized(true); });
+    |                              ^^^^^^^   --------- use occurs due to use in closure
+    |                              |
+    |                              value used here after move
+    |
+help: consider cloning the value before moving it into the closure
+    |
+334 ~     let value = ui_handle.clone();
+335 ~     ui.on_load_profile(move |name: SharedString| {
+336 ~         let ui = value.upgrade().unwrap();
+    |
+
+error[E0382]: use of moved value: `ui_handle`
+   --> h4_vision\src\main.rs:360:30
+    |
+145 |     let ui_handle = ui.as_weak();
+    |         --------- move occurs because `ui_handle` has type `slint::Weak<MainWindow>`, which does not implement the `Copy` trait
+...
+359 |     ui.on_minimize_requested(move || { ui_handle.upgrade().unwrap().window().set_minimized(true); });
+    |                              -------   --------- variable moved due to use in closure
+    |                              |
+    |                              value moved into closure here
+360 |     ui.on_maximize_requested(move || { let ui = ui_handle.upgrade().unwrap(); let m = ui.window().is_maximized(); ui.window().set_maximiz...
+    |                              ^^^^^^^            --------- use occurs due to use in closure
+    |                              |
+    |                              value used here after move
+    |
+help: consider cloning the value before moving it into the closure
+    |
+359 ~     let value = ui_handle.clone();
+360 ~     ui.on_minimize_requested(move || { value.upgrade().unwrap().window().set_minimized(true); });
+    |
+
+error[E0382]: use of moved value: `ui_handle`
+   --> h4_vision\src\main.rs:361:26
+    |
+145 |     let ui_handle = ui.as_weak();
+    |         --------- move occurs because `ui_handle` has type `slint::Weak<MainWindow>`, which does not implement the `Copy` trait
+...
+360 |     ui.on_maximize_requested(move || { let ui = ui_handle.upgrade().unwrap(); let m = ui.window().is_maximized(); ui.window().set_maximiz...
+    |                              -------            --------- variable moved due to use in closure
+    |                              |
+    |                              value moved into closure here
+361 |     ui.on_window_dragged(move |ox, oy| { let ui = ui_handle.upgrade().unwrap(); let p = ui.window().position(); ui.window().set_position(...
+    |                          ^^^^^^^^^^^^^            --------- use occurs due to use in closure
+    |                          |
+    |                          value used here after move
+    |
+help: consider cloning the value before moving it into the closure
+    |
+360 ~     let value = ui_handle.clone();
+361 ~     ui.on_maximize_requested(move || { let ui = value.upgrade().unwrap(); let m = ui.window().is_maximized(); ui.window().set_maximized(!m); });
+    |
+
+error[E0382]: borrow of moved value: `manager_state`
+   --> h4_vision\src\main.rs:363:35
+    |
+151 |     let manager_state: Arc<Mutex<Option<MemoryManager>>> = Arc::new(Mutex::new(None));
+    |         ------------- move occurs because `manager_state` has type `Arc<std::sync::Mutex<std::option::Option<MemoryManager>>>`, which does not implement the `Copy` trait
+...
+351 |     ui.on_terminal_command(move |cmd: SharedString| {
+    |                            ------------------------ value moved into closure here
+352 |         if let Some(mgr) = manager_state.lock().unwrap().as_ref() {
+    |                            ------------- variable moved due to use in closure
+...
+363 |     let m_state_poll = Arc::clone(&manager_state);
+    |                                   ^^^^^^^^^^^^^^ value borrowed here after move
+
+error[E0382]: borrow of moved value: `poll_addresses`
+   --> h4_vision\src\main.rs:364:22
+    |
+152 |     let poll_addresses: Arc<Mutex<Vec<usize>>> = Arc::new(Mutex::new(Vec::new()));
+    |         -------------- move occurs because `poll_addresses` has type `Arc<std::sync::Mutex<Vec<usize>>>`, which does not implement the `Copy` trait
+...
+334 |     ui.on_load_profile(move |name: SharedString| {
+    |                        ------------------------- value moved into closure here
+...
+340 |                 let mut poll = poll_addresses.lock().unwrap();
+    |                                -------------- variable moved due to use in closure
+...
+364 |     let poll_addrs = poll_addresses.clone();
+    |                      ^^^^^^^^^^^^^^ value borrowed here after move
+    |
+help: consider cloning the value before moving it into the closure
+    |
+334 ~     let value = poll_addresses.clone();
+335 ~     ui.on_load_profile(move |name: SharedString| {
+336 |         let ui = ui_handle.upgrade().unwrap();
+...
+340 |                 let mut master = all_scan_results.lock().unwrap();
+341 ~                 let mut poll = value.lock().unwrap();
+    |
+
+error[E0382]: borrow of moved value: `results_model`
+   --> h4_vision\src\main.rs:379:26
+    |
+158 |     let results_model = Rc::new(VecModel::<ScanEntry>::default());
+    |         ------------- move occurs because `results_model` has type `Rc<VecModel<ScanEntry>>`, which does not implement the `Copy` trait
+...
+334 |     ui.on_load_profile(move |name: SharedString| {
+    |                        ------------------------- value moved into closure here
+...
+342 |                 while results_model.row_count() > 0 { results_model.remove(0); }
+    |                 -----------------------------------
+    |                 |     |
+    |                 |     variable moved due to use in closure
+    |                 inside of this loop
+...
+379 |     let res_model_main = results_model.clone();
+    |                          ^^^^^^^^^^^^^ value borrowed here after move
+    |
+help: consider moving the expression out of the loop so it is only moved once
+    |
+342 ~                 let mut value = results_model.row_count();
+343 ~                 while value > 0 { results_model.remove(0); }
+    |
+help: consider cloning the value before moving it into the closure
+    |
+334 ~     let value = results_model.clone();
+335 ~     ui.on_load_profile(move |name: SharedString| {
+336 |         let ui = ui_handle.upgrade().unwrap();
+...
+342 |                 master.clear(); poll.clear();
+343 ~                 while value.row_count() > 0 { results_model.remove(0); }
+    |
+
+warning: unused variable: `ui`
+   --> h4_vision\src\main.rs:192:13
+    |
+192 |         let ui = ui_refresh_weak.unwrap();
+    |             ^^ help: if this is intentional, prefix it with an underscore: `_ui`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `ui_filter_weak`
+   --> h4_vision\src\main.rs:197:9
+    |
+197 |     let ui_filter_weak = ui_handle.clone();
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_ui_filter_weak`
+
+For more information about this error, try `rustc --explain E0382`.
+warning: `h4_vision` (bin "h4_vision") generated 2 warnings
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error: could not compile `h4_vision` (bin "h4_vision") due to 11 previous errors; 2 warnings emitted

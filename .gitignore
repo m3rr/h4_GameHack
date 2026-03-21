@@ -1,0 +1,13 @@
+/target
+/target/debug
+/target/release
+/.gemini
+/.idea
+/.vscode
+/.history
+/h4_config.json
+/profiles/*.h4ck
+/*.txt
+/*.log
+# Slint cache
+/.slint-cache

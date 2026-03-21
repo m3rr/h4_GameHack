@@ -1,0 +1,48 @@
+warning: unused variable: `region_timer`
+   --> h4_engine\src\aob.rs:100:21
+    |
+100 | ...     let region_timer = std::time::In...
+    |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_region_timer`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `h4_engine` (lib) generated 1 warning (run `cargo fix --lib -p h4_engine` to apply 1 suggestion)
+   Compiling h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+error[E0063]: missing field `level` in initializer of `TerminalLog`
+   --> h4_vision\src\main.rs:287:27
+    |
+287 | ...   term_refresh.push(TerminalLog { timestamp: SharedString::from(chrono::Local::now().format("%H:%M:%S").to_string()), content: Shared...
+    |                         ^^^^^^^^^^^ missing `level`
+
+error[E0063]: missing field `level` in initializer of `TerminalLog`
+   --> h4_vision\src\main.rs:298:26
+    |
+298 | ...   term_filter.push(TerminalLog { timestamp: SharedString::from(chrono::Local::now().format("%H:%M:%S").to_string()), content: SharedS...
+    |                        ^^^^^^^^^^^ missing `level`
+
+error[E0063]: missing field `level` in initializer of `TerminalLog`
+   --> h4_vision\src\main.rs:360:30
+    |
+360 |             term_select.push(TerminalLog { 
+    |                              ^^^^^^^^^^^ missing `level`
+
+error[E0063]: missing field `level` in initializer of `TerminalLog`
+   --> h4_vision\src\main.rs:379:38
+    |
+379 | ...   term_select.push(TerminalLog { timestamp: SharedString::from(chrono::Local::now().format("%H:%M:%S").to_string()), content: SharedS...
+    |                        ^^^^^^^^^^^ missing `level`
+
+error[E0063]: missing field `level` in initializer of `TerminalLog`
+   --> h4_vision\src\main.rs:389:38
+    |
+389 | ...   term_select.push(TerminalLog { timestamp: SharedString::from(chrono::Local::now().format("%H:%M:%S").to_string()), content: SharedS...
+    |                        ^^^^^^^^^^^ missing `level`
+
+error[E0063]: missing field `level` in initializer of `TerminalLog`
+   --> h4_vision\src\main.rs:600:34
+    |
+600 | ...   term_model_term.push(TerminalLog { timestamp: SharedString::from(chrono::Local::now().format("%H:%M:%S").to_string()), content: Sha...
+    |                            ^^^^^^^^^^^ missing `level`
+
+For more information about this error, try `rustc --explain E0063`.
+error: could not compile `h4_vision` (bin "h4_vision") due to 6 previous errors

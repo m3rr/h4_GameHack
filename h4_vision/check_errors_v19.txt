@@ -1,0 +1,41 @@
+   Compiling h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+error: failed to run custom build command for `h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)`
+
+Caused by:
+  process didn't exit successfully: `D:\PROJECTS\h4_GameHack\target\debug\build\h4_vision-4c880f79a2ebad6f\build-script-build` (exit code: 101)
+  --- stderr
+  warning: Component is neither used nor exported
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:140:1
+      |
+  140 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+  error: Element 'HorizontalBox' does not have a property 'parent'
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:163:23
+      |
+  163 |             y: parent.parent.pressed ? 1px : 0px;
+      |                       ^^^^^^
+  error: Element 'HorizontalBox' does not have a property 'parent'
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:168:23
+      |
+  168 |             y: parent.parent.pressed ? 1px : 0px;
+      |                       ^^^^^^
+  error: The property 'y' cannot be set for elements placed in this layout, because the layout is already setting it
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:412:36
+      |
+  412 | ...                   y: touch_pid.pressed ? 1px : (touch_pid.has_hover ? -1px : 0px);
+      |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  error: The property 'y' cannot be set for elements placed in this layout, because the layout is already setting it
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:109:8
+      |
+  109 |     y: pressed ? 0px : -3px;
+      |        ^^^^^^^^^^^^^^^^^^^^^
+  error: The property 'y' cannot be set for elements placed in this layout, because the layout is already setting it
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:480:40
+      |
+  480 | ...                   y: touch_prof.pressed ? 1px : -1px;
+      |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  thread 'main' (39004) panicked at h4_vision\build.rs:2:43:
+  called `Result::unwrap()` on an `Err` value: CompileError(["D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:140: Component is neither used nor exported", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:163: Element 'HorizontalBox' does not have a property 'parent'", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:168: Element 'HorizontalBox' does not have a property 'parent'", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:412: The property 'y' cannot be set for elements placed in this layout, because the layout is already setting it", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:109: The property 'y' cannot be set for elements placed in this layout, because the layout is already setting it", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:480: The property 'y' cannot be set for elements placed in this layout, because the layout is already setting it"])
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

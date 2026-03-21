@@ -1,0 +1,21 @@
+   Compiling h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+error: failed to run custom build command for `h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)`
+
+Caused by:
+  process didn't exit successfully: `D:\PROJECTS\h4_GameHack\target\debug\build\h4_vision-4c880f79a2ebad6f\build-script-build` (exit code: 101)
+  --- stderr
+  warning: Component is neither used nor exported
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+      |
+  122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |
+  error: Cannot find image file D:\PROJECTS\h4_GameHack\h4_vision\assets\logo.png
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:200:11
+      |
+  200 |     icon: @image-url("../assets/logo.png");
+      |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  thread 'main' (13200) panicked at h4_vision\build.rs:2:43:
+  called `Result::unwrap()` on an `Err` value: CompileError(["D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:122: Component is neither used nor exported", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:200: Cannot find image file D:\\PROJECTS\\h4_GameHack\\h4_vision\\assets\\logo.png"])
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

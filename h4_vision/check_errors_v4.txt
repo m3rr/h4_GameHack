@@ -1,0 +1,32 @@
+   Compiling h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:121:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 121 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error[E0433]: failed to resolve: use of undeclared type `H4Splash`
+  --> h4_vision\src\main.rs:88:18
+   |
+88 |     let splash = H4Splash::new()?;
+   |                  ^^^^^^^^ use of undeclared type `H4Splash`
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:103:17
+    |
+103 |                 s.set_logo_opacity(opacity);
+    |                 ^ cannot infer type
+
+error[E0599]: no method named `set_icon` found for reference `&Window` in the current scope
+   --> h4_vision\src\main.rs:167:21
+    |
+167 |         ui.window().set_icon(Some(icon));
+    |                     ^^^^^^^^ method not found in `&Window`
+
+Some errors have detailed explanations: E0282, E0433, E0599.
+For more information about an error, try `rustc --explain E0282`.
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:121:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 121 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error: could not compile `h4_vision` (bin "h4_vision") due to 3 previous errors

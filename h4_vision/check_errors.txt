@@ -1,0 +1,203 @@
+   Compiling fontique v0.7.0
+    Checking skrifa v0.37.0
+    Checking harfrust v0.3.2
+   Compiling ravif v0.13.0
+   Compiling moxcms v0.8.1
+   Compiling glutin_wgl_sys v0.6.1
+    Checking derive_more v2.1.1
+   Compiling fontdue v0.9.3
+   Compiling rspolib v0.1.2
+    Checking windows-future v0.2.1
+   Compiling glutin_egl_sys v0.7.1
+   Compiling num_enum v0.7.5
+   Compiling lyon_extra v1.1.0
+    Checking windows_x86_64_msvc v0.53.1
+   Compiling url v2.5.8
+    Checking windows-numerics v0.2.0
+    Checking windows-collections v0.2.0
+   Compiling strum v0.27.2
+    Checking cursor-icon v1.2.0
+    Checking i-slint-common v1.15.1
+   Compiling serde v1.0.228
+    Checking swash v0.2.6
+    Checking smol_str v0.2.2
+    Checking either v1.15.0
+   Compiling image v0.25.10
+    Checking accesskit v0.22.0
+    Checking foldhash v0.1.5
+    Checking windows-targets v0.53.5
+    Checking crossbeam-utils v0.8.21
+    Checking aho-corasick v1.1.4
+    Checking windows-threading v0.2.1
+    Checking windows v0.61.3
+    Checking libloading v0.8.9
+    Checking static_assertions v1.1.0
+    Checking error-code v3.3.2
+    Checking regex-syntax v0.8.10
+    Checking imgref v1.12.0
+    Checking ttf-parser v0.21.1
+    Checking glow v0.16.0
+    Checking winit v0.30.13
+    Checking hashbrown v0.15.5
+    Checking fnv v1.0.7
+    Checking itertools v0.14.0
+    Checking windows-future v0.3.2
+    Checking clipboard-win v5.4.1
+    Checking windows-sys v0.60.2
+    Checking keyboard-types v0.7.0
+    Checking windows-numerics v0.3.1
+    Checking glutin v0.32.3
+    Checking windows-collections v0.3.2
+    Checking accesskit_consumer v0.32.0
+    Checking integer-sqrt v0.1.5
+    Checking anstyle v1.0.14
+    Checking crossbeam-channel v0.5.15
+    Checking zeno v0.3.3
+    Checking once_cell_polyfill v1.70.2
+    Checking utf8parse v0.2.2
+   Compiling toml_edit v0.24.1+spec-1.1.0
+    Checking copypasta v0.10.2
+    Checking regex-automata v0.4.14
+    Checking zerocopy v0.8.42
+    Checking femtovg v0.20.4
+   Compiling i-slint-backend-selector v1.15.1
+    Checking softbuffer v0.4.8
+    Checking anstyle-parse v0.2.7
+    Checking anstyle-query v1.1.5
+    Checking anstyle-wincon v3.0.11
+    Checking getrandom v0.2.17
+    Checking glutin-winit v0.5.0
+    Checking colorchoice v1.0.5
+    Checking is_terminal_polyfill v1.70.2
+    Checking parking_lot_core v0.9.12
+    Checking lock_api v0.4.14
+    Checking rand_core v0.6.4
+    Checking jiff v0.2.23
+    Checking anstream v0.6.21
+    Checking thiserror v1.0.69
+    Checking h4_shared v0.1.0 (D:\PROJECTS\h4_GameHack\h4_shared)
+    Checking zmij v1.0.21
+    Checking windows v0.62.2
+    Checking socket2 v0.6.3
+    Checking mio v1.1.1
+    Checking anyhow v1.0.102
+    Checking parking_lot v0.12.5
+    Checking itoa v1.0.17
+   Compiling toml v0.5.11
+    Checking parley v0.7.0
+    Checking bytes v1.11.1
+    Checking regex v1.12.3
+    Checking muda v0.17.1
+    Checking serde_json v1.0.149
+    Checking env_filter v1.0.0
+    Checking tokio v1.50.0
+   Compiling i-slint-compiler v1.15.1
+    Checking i-slint-core v1.15.1
+   Compiling winres v0.1.12
+    Checking env_logger v0.11.9
+    Checking h4_engine v0.1.0 (D:\PROJECTS\h4_GameHack\h4_engine)
+    Checking ppv-lite86 v0.2.21
+    Checking rand_chacha v0.3.1
+    Checking rand v0.8.5
+    Checking accesskit_windows v0.30.0
+    Checking accesskit_winit v0.30.0
+    Checking i-slint-renderer-software v1.15.1
+    Checking i-slint-renderer-femtovg v1.15.1
+    Checking i-slint-backend-qt v1.15.1
+    Checking i-slint-backend-winit v1.15.1
+   Compiling slint-build v1.15.1
+   Compiling slint-macros v1.15.1
+   Compiling h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+    Checking slint v1.15.1
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:120:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 120 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error: failed to run custom build command for `h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)`
+
+Caused by:
+  process didn't exit successfully: `D:\PROJECTS\h4_GameHack\target\debug\build\h4_vision-4c880f79a2ebad6f\build-script-build` (exit code: 101)
+  --- stdout
+  cargo:warning=warning: Component is neither used nor exported
+  cargo:warning=   --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:120:1
+  cargo:warning=    |
+  cargo:warning=120 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+  cargo:warning=    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  cargo:rerun-if-changed=D:\PROJECTS\h4_GameHack\target\debug\build\SLINT_DEFAULT_STYLE.txt
+  cargo:rerun-if-changed=D:\PROJECTS\h4_GameHack\h4_vision\ui/main.slint
+  cargo:rerun-if-env-changed=SLINT_STYLE
+  cargo:rerun-if-env-changed=SLINT_FONT_SIZES
+  cargo:rerun-if-env-changed=SLINT_SCALE_FACTOR
+  cargo:rerun-if-env-changed=SLINT_ASSET_SECTION
+  cargo:rerun-if-env-changed=SLINT_EMBED_RESOURCES
+  cargo:rerun-if-env-changed=SLINT_EMIT_DEBUG_INFO
+  cargo:rerun-if-env-changed=SLINT_LIVE_PREVIEW
+  cargo:rustc-env=SLINT_INCLUDE_GENERATED=D:\PROJECTS\h4_GameHack\target\debug\build\h4_vision-7f83baeb48d0cbb4\out\main.rs
+
+  --- stderr
+  error: Cannot convert percent to length
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\splash.slint:42:16
+      |
+   42 |             x: 10% + jitter_x;
+      |                ^^^^
+      |
+  error: Cannot convert percent to length
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\splash.slint:43:16
+      |
+   43 |             y: 10% + jitter_y;
+      |                ^^^^
+  error: Cannot convert percent to length
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\splash.slint:53:16
+      |
+   53 |             x: 10% + jitter_x + r_offset;
+      |                ^^^^
+  error: Cannot convert percent to length
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\splash.slint:54:16
+      |
+   54 |             y: 10% + jitter_y;
+      |                ^^^^
+  error: Cannot convert percent to length
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\splash.slint:65:16
+      |
+   65 |             x: 10% + jitter_x + b_offset;
+      |                ^^^^
+  error: Cannot convert percent to length
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\splash.slint:66:16
+      |
+   66 |             y: 10% + jitter_y;
+      |                ^^^^
+  error: Cannot convert percent to length
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\splash.slint:74:16
+      |
+   74 |             x: 10% + jitter_x - (b_offset * 2);
+      |                ^^^^
+  error: Cannot convert percent to length
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\splash.slint:75:16
+      |
+   75 |             y: 40% + jitter_y;
+      |                ^^^^
+  error: Cannot convert percent to length
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\splash.slint:85:34
+      |
+   85 |                 y: - (parent.y - 10%);
+      |                                  ^^^
+  error: Cannot convert percent to length
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\splash.slint:91:16
+      |
+   91 |             x: 10% + jitter_x + (r_offset * 3);
+      |                ^^^^
+  error: Cannot convert percent to length
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\splash.slint:92:16
+      |
+   92 |             y: 60% + jitter_y;
+      |                ^^^^
+  error: Cannot convert percent to length
+     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\splash.slint:102:34
+      |
+  102 |                 y: - (parent.y - 10%);
+      |                                  ^^^
+
+  thread 'main' (32700) panicked at h4_vision\build.rs:3:45:
+  called `Result::unwrap()` on an `Err` value: CompileError(["D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\splash.slint:42: Cannot convert percent to length", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\splash.slint:43: Cannot convert percent to length", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\splash.slint:53: Cannot convert percent to length", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\splash.slint:54: Cannot convert percent to length", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\splash.slint:65: Cannot convert percent to length", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\splash.slint:66: Cannot convert percent to length", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\splash.slint:74: Cannot convert percent to length", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\splash.slint:75: Cannot convert percent to length", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\splash.slint:85: Cannot convert percent to length", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\splash.slint:91: Cannot convert percent to length", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\splash.slint:92: Cannot convert percent to length", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\splash.slint:102: Cannot convert percent to length"])
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

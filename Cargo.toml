@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "h4_engine",
+    "h4_vision",
+    "h4_shared",
+]
+resolver = "2"

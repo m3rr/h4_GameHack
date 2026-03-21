@@ -1,0 +1,1125 @@
+import { VerticalBox, HorizontalBox, ScrollView, Button, LineEdit } from "std-widgets.slint";
+
+export global H4Themes {
+    in property <[color]> solid_accents: [
+        #00a383, // Emerald
+        #a300a3, // Purple
+        #99a300, // Gold
+        #a32200, // Flame
+        #2266a3, // Cobalt
+        #6622a3, // Deep Violet
+        #00a342, // Jade
+        #a38300, // Amber
+        #a34283, // Magenta
+        #888888, // Slate
+        #00ffd5, // Cyan Neon
+        #ff2e63, // Hot Pink
+        #eaffd0, // Lime Ghost
+        #95e1d3, // Mint
+        #fce38a, // Sunrise
+        #aa96da, // Lavender
+        #ff7171, // Coral
+        #a7ff83, // Spring
+        #00818a, // Teal
+        #dbd8e3  // Ghost White
+    ];
+    
+    in property <[color]> theme_backgrounds: [
+        #121212, #141215, #151512, #161212, #121416, #141216, #121614, #161512, #161215, #141414,
+        #111313, #131112, #121311, #111313, #131311, #121113, #131111, #111311, #101213, #131315
+    ];
+
+    in property <[color]> accent_content_colors: [
+        #ffffff, // Emerald
+        #ffffff, // Purple
+        #000000, // Gold
+        #ffffff, // Flame
+        #ffffff, // Cobalt
+        #ffffff, // Deep Violet
+        #ffffff, // Jade
+        #000000, // Amber
+        #ffffff, // Magenta
+        #000000, // Slate
+        #000000, // Cyan Neon
+        #ffffff, // Hot Pink
+        #000000, // Lime Ghost
+        #000000, // Mint
+        #000000, // Sunrise
+        #000000, // Lavender
+        #000000, // Coral
+        #000000, // Spring
+        #ffffff, // Teal
+        #000000  // Ghost White
+    ];
+
+    in property <[brush]> mixed_accents: [
+        @linear-gradient(90deg, #008866 0%, #880088 100%),
+        @linear-gradient(90deg, #888800 0%, #008833 100%),
+        @linear-gradient(90deg, #882200 0%, #224488 100%),
+        @linear-gradient(90deg, #662288 0%, #883366 100%),
+        @linear-gradient(90deg, #886600 0%, #555555 100%)
+    ];
+    in-out property <int> current_theme_idx: 0;
+    in property <bool> is_mixed: false;
+    
+    out property <brush> active_accent: is_mixed ? mixed_accents[Math.mod(current_theme_idx, 5)] : solid_accents[Math.mod(current_theme_idx, 20)];
+    out property <color> active_content: is_mixed ? #ffffff : accent_content_colors[Math.mod(current_theme_idx, 20)];
+    in-out property <color> background: theme_backgrounds[Math.mod(current_theme_idx, 20)];
+    in-out property <color> text_color: #dddddd;
+    in-out property <bool> dev_mode: false;
+    callback theme_changed(int);
+}
+
+struct ProcessInfo {
+    pid: int,
+    name: string,
+    status: string,
+    is_system: bool,
+    category: string,
+    is_error: bool,
+}
+
+struct ScanEntry {
+    address: string,
+    label: string,
+    value: string,
+    value_type: string,
+}
+
+struct TerminalLog {
+    timestamp: string,
+    content: string,
+    level: string, // Added for log filtering
+}
+
+component H4ButtonBase inherits Rectangle {
+    in property <brush> accent: H4Themes.active_accent;
+    in property <string> text;
+    in property <bool> active: false;
+    callback clicked();
+    
+    // VISUAL FEEDBACK STATE
+    out property <bool> pressed: touch.pressed;
+    out property <bool> has_hover: touch.has_hover;
+
+    // Outer container doesn't move, its body does
+    button_body := Rectangle {
+        width: 100%; height: 100%;
+        border-radius: 4px;
+        border-width: 1.5px;
+        border-color: active ? #ffffff : (has_hover ? accent : accent.darker(20%));
+        background: active ? accent : #ffffff08;
+        
+        // RAISED EFFECT ( Removed negative offset to prevent 'looking up' )
+        y: parent.pressed ? 1px : 0px;
+        drop-shadow-offset-y: parent.pressed ? 1px : 2px;
+        drop-shadow-blur: parent.pressed ? 2px : 4px;
+        drop-shadow-color: #000000cc;
+        
+        animate y, drop-shadow-offset-y, drop-shadow-blur { 
+            duration: 75ms; 
+            easing: ease-out; 
+        }
+
+        clip: true;
+        
+        Rectangle {
+            width: parent.width; height: parent.height;
+            background: @linear-gradient(90deg, #ffffff00 0%, #ffffff11 50%, #ffffff00 100%);
+            x: touch.has_hover ? 0 : -parent.width;
+            animate x { duration: 400ms; easing: ease-in-out; }
+        }
+
+        Text {
+            width: 100%; height: 100%;
+            text: root.text;
+            color: active ? H4Themes.active_content : H4Themes.text_color;
+            font-weight: 800;
+            vertical-alignment: center; horizontal-alignment: center;
+            // Text also "sinks" slightly for extra feel
+            y: root.pressed ? 1px : 0px;
+        }
+    }
+
+    touch := TouchArea { clicked => { parent.clicked(); } }
+}
+
+component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+component H4ButtonGhost inherits H4ButtonBase { background: transparent; border-width: 1.5px; opacity: 0.8; }
+component H4ButtonOutline inherits H4ButtonGhost { background: #ffffff05; }
+component H4ButtonSolid inherits H4ButtonBase { 
+    background: H4Themes.active_accent; 
+    active: true; // Force active content color
+}
+
+component H4Dropdown inherits Rectangle {
+    in property <string> label;
+    in property <[string]> options;
+    in-out property <int> selected_idx: 0;
+    in-out property <string> selected_text: options[selected_idx];
+    in-out property <bool> open: false;
+    z: open ? 1000 : 1; // Nuclear Z-order when open to override siblings
+    callback changed(string);
+    
+    dropdown_body := Rectangle {
+        width: 100%; height: 100%;
+        background: H4Themes.background.brighter(10%);
+        border-radius: 4px; border-width: 1px; border-color: H4Themes.active_accent.darker(20%);
+        
+        // RAISED FEEDBACK
+        y: parent.pressed ? 1px : -2px;
+        drop-shadow-offset-y: parent.pressed ? 1px : 4px;
+        drop-shadow-blur: parent.pressed ? 2px : 6px;
+        drop-shadow-color: #000000aa;
+        animate y, drop-shadow-offset-y, drop-shadow-blur { duration: 75ms; }
+
+        HorizontalBox {
+            padding-left: 10px; padding-right: 10px;
+            Text { 
+                height: 100%;
+                text: root.selected_text; color: #ffffff; vertical-alignment: center; font-size: 13px; 
+                y: root.pressed ? 1px : 0px;
+            }
+            Rectangle { width: 100%; }
+            Text { 
+                height: 100%;
+                text: root.open ? "▲" : "▼"; color: H4Themes.active_accent; vertical-alignment: center; font-size: 12px; 
+                y: root.pressed ? 1px : 0px;
+            }
+        }
+    }
+    
+    out property <bool> pressed: touch.pressed;
+    touch := TouchArea { clicked => { open = !open; } }
+    
+    if open : Rectangle {
+        y: parent.height + 4px;
+        width: parent.width;
+        height: options.length * 28px;
+        background: H4Themes.background.darker(5%); // Solid dark theme
+        border-radius: 4px; border-width: 1.5px; border-color: H4Themes.active_accent;
+        drop-shadow-blur: 15px; drop-shadow-color: #000;
+        z: 1001; 
+        
+        // This TouchArea blocks clicks from passing through to elements behind the dropdown
+        TouchArea { }
+        
+        VerticalLayout {
+            for opt[i] in options : Rectangle {
+                height: 28px;
+                background: touch_opt.has_hover ? H4Themes.active_accent.darker(60%) : transparent;
+                Text { 
+                    x: 10px; text: opt; color: #ffffff; vertical-alignment: center; font-size: 13px; 
+                    font-weight: (i == selected_idx) ? 800 : 400;
+                }
+                touch_opt := TouchArea { clicked => { selected_idx = i; open = false; changed(opt); } }
+            }
+        }
+    }
+}
+
+component H4SearchIcon inherits Rectangle {
+    in property <brush> icon_brush: H4Themes.active_accent;
+    width: 20px; height: 20px;
+    
+    // Lens
+    Rectangle {
+        x: 2px; y: 2px;
+        width: 12px; height: 12px;
+        border-radius: 6px;
+        border-width: 2px;
+        border-color: parent.icon_brush;
+    }
+    
+    // Handle (Flat 2D Vector style)
+    Path {
+        viewbox-width: 20; viewbox-height: 20;
+        width: 100%; height: 100%;
+        stroke: parent.icon_brush;
+        stroke-width: 2px;
+        commands: "M 13 13 L 18 18";
+    }
+}
+
+export component DebugWindow inherits Window {
+    title: "H4_System_Terminal // DEBUG_MODE";
+    width: 600px; height: 400px;
+    background: H4Themes.background.darker(20%); // Not pure black, themed
+    icon: @image-url("../../assets/logo.png");
+    
+    in property <[TerminalLog]> logs: [];
+    callback clear_logs();
+    callback copy_all();
+    callback copy_errors();
+    callback export_md();
+    
+    VerticalBox {
+        padding: 0; spacing: 0;
+        Rectangle {
+            height: 32px; background: #111;
+            HorizontalLayout {
+                padding-left: 10px; padding-right: 10px; spacing: 8px;
+                Text { text: "CORE_DEBUG_LOG // STANDBY"; color: #0f0; font-family: "monospace"; font-size: 11px; vertical-alignment: center; }
+                Rectangle { /* Spacer */ } 
+                Button { height: 24px; text: "COPY ALL"; clicked => { root.copy_all(); } }
+                Button { height: 24px; text: "ERRORS"; clicked => { root.copy_errors(); } }
+                Button { height: 24px; text: "EXPORT .MD"; clicked => { root.export_md(); } }
+                Button { height: 24px; text: "CLEAR"; clicked => { root.clear_logs(); } }
+            }
+        }
+        flick := Flickable {
+            viewport-height: log_list.preferred-height;
+            viewport-y: -Math.max(0px, log_list.preferred-height - self.height);
+            log_list := VerticalBox {
+                alignment: start; padding: 10px; spacing: 2px;
+                for entry in logs: Rectangle {
+                    height: 18px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text { text: "[" + entry.timestamp + "]"; color: #004400; font-family: "monospace"; font-size: 10px; vertical-alignment: center; }
+                        Text { 
+                            text: entry.content; 
+                            color: (entry.level == "ERROR") ? #ff0000 : ((entry.level == "WARN") ? #ffff00 : #00ff00); 
+                            font-family: "monospace"; font-size: 11px; 
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export struct DiscoverySigEntry {
+    name: string,
+    aliases: string, 
+    patterns: string,
+    ptr_offset: string, // Display as string for UI
+    value_type_str: string,
+}
+
+export component MainWindow inherits Window {
+    title: "H4_GameHack";
+    icon: @image-url("../../assets/logo.png");
+    width: 1040px; height: 820px;
+    background: show_splash ? transparent : H4Themes.background;
+    no-frame: true;
+
+    callback terminal_command(string);
+    callback close_requested();
+    callback minimize_requested();
+    callback maximize_requested();
+    callback window_dragged(length, length);
+    callback filter_changed(string);
+    callback refresh_process_list();
+    callback process_selected(int);
+    callback smart_scan_triggered();
+    callback manual_scan_requested(string, string, string);
+    callback start_manual_search(string, string, string, string);
+    callback targeted_smart_search(string);
+    callback search_term_changed(string, string);
+    callback refresh_results();
+    callback workspace_search(string);
+    callback cancel_scan();
+
+    in property <[ProcessInfo]> processes: [];
+    in property <[ScanEntry]> scan_results: [];
+    in property <[TerminalLog]> terminal_logs: [];
+    in property <[string]> available_profiles: [];
+    in-out property <string> search_mode: "Processes";
+    in-out property <string> filter_mode: "All";
+    in-out property <bool> manual_search_open: false;
+    in-out property <bool> profiles_open: false;
+    in-out property <int> active_pid: -1;
+    in-out property <string> active_process_name: "";
+    in-out property <[DiscoverySigEntry]> signatures: [];
+    in-out property <bool> show_discovery_config: false;
+    in-out property <bool> show_smart_scan_warning: false;
+    in-out property <bool> dont_show_scan_warning: false;
+    in-out property <bool> scanning_active: false;
+
+    callback add_custom_signature(string, string, string, string);
+    callback close_discovery_config();
+    callback confirm_smart_scan();
+    callback cancel_smart_scan();
+    in-out property <float> scan_progress: 0.0;
+    in-out property <string> scan_status: "STANDBY";
+    in-out property <float> app_glitch_alpha: 0.0;
+    in-out property <string> notification_text: "";
+    in-out property <bool> show_notification: false;
+    in-out property <bool> search_error_open: false;
+    
+    callback save_profile(string);
+    callback load_profile(string);
+
+    // SPLASH PROPERTIES
+    in-out property <bool> show_splash: true;
+    in-out property <float> logo_opacity: 0.0;
+    in-out property <float> glitch_alpha: 0.0;
+    in-out property <length> jitter_x: 0px;
+    in-out property <length> jitter_y: 0px;
+    in-out property <length> r_offset: 0px;
+    in-out property <length> b_offset: 0px;
+
+    VerticalBox {
+        padding: 0;
+        spacing: 0;
+        opacity: show_splash ? 0 : 1;
+        
+        y: app_glitch_alpha * jitter_y * 0.5;
+        x: app_glitch_alpha * jitter_x * 0.5;
+        Rectangle {
+            height: 32px; // Classic sleek height
+            background: H4Themes.background.darker(85%);
+            z: 100; // Elevate title bar to allow dropdown overlap
+            
+            // Drag Area
+            TouchArea {
+                moved => {
+                    if (self.pressed) {
+                        root.window_dragged(self.mouse-x - self.pressed-x, self.mouse-y - self.pressed-y);
+                    }
+                }
+            }
+            
+            HorizontalLayout {
+                padding-left: 12px;
+                alignment: start;
+                Text { 
+                    text: root.active_pid == -1 ? "h4_GameHack // SEARCHING..." : "h4_GameHack > PID : " + root.active_process_name + " | " + root.active_pid; 
+                    color: root.active_pid == -1 ? #444 : H4Themes.active_accent; 
+                    font-size: 11px; 
+                    font-weight: 800;
+                    vertical-alignment: center; 
+                }
+                Rectangle { width: 15px; }
+                // DEBUG TOGGLE BUTTON
+                Rectangle {
+                    width: 80px; height: 16px;
+                    background: H4Themes.dev_mode ? H4Themes.active_accent : #222;
+                    border-radius: 2px;
+                    Text { text: "DEBUG: " + (H4Themes.dev_mode ? "ON" : "OFF"); color: H4Themes.dev_mode ? #000 : #666; font-size: 9px; vertical-alignment: center; horizontal-alignment: center; font-weight: 900; }
+                    touch_dbg := TouchArea { clicked => { H4Themes.dev_mode = !H4Themes.dev_mode; } }
+                }
+            }
+
+            // Centered Global Filter
+            HorizontalLayout {
+                alignment: center;
+                filter_dropdown := H4Dropdown {
+                    width: 320px; height: 24px;
+                    y: (parent.height - self.height) / 2;
+                    options: ["All", "Games", "System", "Windows", "Necessary", "Third Party"];
+                    selected_text: root.filter_mode;
+                    selected_idx: 0;
+                    changed(val) => { root.filter_mode = val; root.filter_changed(val); }
+                }
+            }
+
+            // ABSALUTE POSITIONED WINDOW CONTROLS (Top Right Edge)
+            HorizontalLayout {
+                x: parent.width - 92px;
+                width: 92px;
+                height: 100%;
+                spacing: 0;
+                alignment: end;
+
+                // Minimize
+                Rectangle {
+                    width: 46px; height: 100%;
+                    background: touch_min.has_hover ? #ffffff11 : transparent;
+                    Text { 
+                        text: "—"; color: white; font-size: 10px; vertical-alignment: center; horizontal-alignment: center; 
+                        y: touch_min.pressed ? 2px : 0px;
+                    }
+                    touch_min := TouchArea { clicked => { minimize_requested(); } }
+                }
+                // Close
+                Rectangle {
+                    width: 46px; height: 100%;
+                    background: touch_close.has_hover ? #e81123 : transparent;
+                    Text { 
+                        text: "✕"; color: white; font-size: 16px; vertical-alignment: center; horizontal-alignment: center; 
+                        y: touch_close.pressed ? 2px : 0px;
+                    }
+                    touch_close := TouchArea { clicked => { close_requested(); } }
+                    animate background { duration: 100ms; }
+                }
+            }
+        }
+
+        HorizontalBox {
+            padding: 0; spacing: 0;
+            
+            // SIDEBAR (Live PIDs & Profiles)
+            Rectangle {
+                width: 300px; background: H4Themes.background.darker(10%);
+                border-width: 1px; border-color: #ffffff05;
+                clip: false;
+                VerticalLayout {
+                    padding: 0; spacing: 0;
+                    
+                    // Toggle Header
+                    HorizontalBox {
+                        padding: 10px; spacing: 10px;
+                        z: 10;
+                        VerticalLayout {
+                            spacing: 5px;
+                            HorizontalLayout {
+                                spacing: 15px;
+                                Text { text: profiles_open ? "AVAILABLE PROFILES" : "SYSTEM OVERVIEW"; color: #666; font-size: 10px; font-weight: 900; }
+                                
+                                if !profiles_open : Rectangle {
+                                    Text {
+                                        text: ">> REFRESH PLIST <<";
+                                        color: touch_refresh.has_hover ? H4Themes.active_accent : #444;
+                                        font-size: 10px; font-weight: 800;
+                                        vertical-alignment: center;
+                                        // SINK FEEDBACK
+                                        y: touch_refresh.pressed ? 1px : 0px;
+                                        touch_refresh := TouchArea { clicked => { root.refresh_process_list(); } }
+                                        animate color, y { duration: 150ms; }
+                                    }
+                                }
+                            }
+                            
+                            if !profiles_open : search_input := LineEdit { 
+                                width: 280px; height: 24px;
+                                placeholder-text: "Locate Process Node...";
+                                edited => { root.search_term_changed(self.text, root.filter_mode); }
+                            }
+                        }
+                    }
+
+                    if !profiles_open : ScrollView {
+                        VerticalBox {
+                            padding: 10px; alignment: start; spacing: 8px;
+                            for p in root.processes: Rectangle {
+                                height: 50px;
+                                pid_body := Rectangle {
+                                    width: 100%; height: 100%;
+                                    border-radius: 8px;
+                                    background: p.is_error ? #440000 : ((root.active_pid == p.pid) ? H4Themes.active_accent.darker(70%) : #ffffff05);
+                                    border-width: (root.active_pid == p.pid || p.is_error) ? 2px : 1px;
+                                    border-color: p.is_error ? #ff0000 : ((root.active_pid == p.pid) ? H4Themes.active_accent : H4Themes.active_accent.darker(60%));
+                                    drop-shadow-blur: p.is_error ? 10px : ((root.active_pid == p.pid) ? 15px : (touch_pid.has_hover ? 8px : 0px));
+                                    drop-shadow-color: H4Themes.active_accent;
+                                    
+                                    // RAISED AND SINK
+                                    y: touch_pid.pressed ? 1px : (touch_pid.has_hover ? -1px : 0px);
+                                    animate y, drop-shadow-blur { duration: 75ms; }
+                                    clip: true;
+
+                                    // Glass reflection effect
+                                    Rectangle {
+                                        width: 100%; height: 100%;
+                                        background: @linear-gradient(135deg, #ffffff11 0%, #ffffff00 50%);
+                                    }
+
+                                    HorizontalBox {
+                                        padding-left: 12px; padding-right: 12px; spacing: 10px;
+                                        // Status Indicator
+                                        Rectangle {
+                                            width: 10px; height: 10px; border-radius: 5px;
+                                            background: (p.status == "Active") ? #00ff88 : (p.status == "Sleeping" ? #ffcc00 : #666666);
+                                            y: (parent.height - self.height) / 2;
+                                            drop-shadow-blur: 5px; drop-shadow-color: self.background;
+                                        }
+                                        Text { 
+                                            height: 100%;
+                                            text: p.name + " (" + p.pid + ")"; 
+                                            color: p.is_error ? #ff6666 : ((root.active_pid == p.pid) ? H4Themes.active_accent : (p.is_system ? #999999 : #ffffff)); 
+                                            font-size: 13px; font-weight: 600;
+                                            width: 230px; overflow: elide; vertical-alignment: center;
+                                            y: touch_pid.pressed ? 1px : 0px;
+                                        }
+                                    }
+                                }
+                                touch_pid := TouchArea { 
+                                    clicked => { 
+                                        if (root.active_pid == p.pid) { 
+                                            root.active_pid = -1; 
+                                            root.active_process_name = ""; 
+                                            root.process_selected(-1);
+                                        } else { 
+                                            root.active_pid = p.pid; 
+                                            root.active_process_name = p.name; 
+                                            root.process_selected(p.pid); 
+                                        }
+                                    } 
+                                }
+                            }
+                        }
+                    }
+
+                    if profiles_open : VerticalBox {
+                        padding: 10px; spacing: 10px;
+                        
+                        save_name := LineEdit { 
+                            placeholder-text: "Profile Name..."; 
+                            height: 32px; font-size: 13px;
+                            accepted => { root.save_profile(self.text); self.text = ""; }
+                        }
+                        
+                        H4ButtonNeon { 
+                            text: "SAVE CURRENT DATA"; height: 32px; 
+                            clicked => { root.save_profile(save_name.text); save_name.text = ""; } 
+                        }
+                        
+                        Rectangle { height: 1px; background: #ffffff11; }
+                        
+                        ScrollView {
+                            VerticalBox {
+                                alignment: start; spacing: 5px;
+                                for prof in root.available_profiles: Rectangle {
+                                    height: 35px;
+                                    prof_body := Rectangle {
+                                        width: 100%; height: 100%;
+                                        border-radius: 4px;
+                                        background: #ffffff05;
+                                        border-width: 1px; border-color: touch_prof.has_hover ? H4Themes.active_accent : #ffffff11;
+                                        
+                                        // FEEDBACK
+                                        y: touch_prof.pressed ? 1px : -2px;
+                                        drop-shadow-offset-y: touch_prof.pressed ? 1px : 3px;
+                                        drop-shadow-blur: touch_prof.pressed ? 1px : 5px;
+                                        drop-shadow-color: #00000088;
+                                        animate y, drop-shadow-offset-y, drop-shadow-blur { duration: 75ms; }
+
+                                        HorizontalBox {
+                                            padding-left: 10px;
+                                        Text { 
+                                            height: 100%;
+                                            text: prof; color: touch_prof.has_hover ? white : #ccc; vertical-alignment: center; font-size: 12px; 
+                                            y: touch_prof.pressed ? 1px : 0px;
+                                        }
+                                        }
+                                    }
+                                    touch_prof := TouchArea { clicked => { root.load_profile(prof); } }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // MAIN WORKSPACE
+            Rectangle {
+                VerticalBox {
+                    padding: 0; spacing: 0;
+                    
+                    // NAV BAR
+                    Rectangle {
+                        height: 90px; background: H4Themes.background.darker(20%);
+                        border-width: 1px; border-color: #ffffff05;
+                        VerticalLayout {
+                            padding: 10px; spacing: 10px;
+                        HorizontalBox {
+                            padding-left: 5px; padding-right: 5px; spacing: 12px;
+                            alignment: start;
+                            
+                            H4ButtonGhost { text: "PROCESSES"; width: 100px; clicked => { root.search_mode = "Processes"; } }
+                            H4ButtonGhost { text: "VARIABLES"; width: 100px; clicked => { root.search_mode = "Search List"; } }
+                            
+                            // MAGNIFYING GLASS
+                            H4ButtonGhost { 
+                                width: 40px; 
+                                border-color: manual_search_open ? H4Themes.active_accent : H4Themes.active_accent.darker(60%);
+                                clicked => { manual_search_open = !manual_search_open; } 
+                                H4SearchIcon {
+                                    icon_brush: manual_search_open ? H4Themes.active_accent : H4Themes.active_accent.darker(20%);
+                                }
+                            }
+
+                            Rectangle { width: 1px; background: #ffffff11; height: 18px; }
+                            
+                            // Manual Scan Controls moved to Nav
+                            m_addr := LineEdit { placeholder-text: "Address"; width: 110px; font-size: 13px; }
+                            m_type := LineEdit { placeholder-text: "Type"; width: 65px; font-size: 13px; }
+                            m_val := LineEdit { placeholder-text: "Value"; width: 85px; font-size: 13px; }
+                            H4ButtonOutline { text: "MODIFY SMART SCAN"; clicked => { root.show_discovery_config = true; } }
+                            H4ButtonSolid { text: "TRACK"; width: 75px; clicked => { root.manual_scan_requested(m_addr.text, m_type.text, m_val.text); } }
+                            
+                        }
+
+                        // WORKSPACE SEARCH BAR
+                        Rectangle {
+                            height: 32px;
+                            HorizontalLayout {
+                                spacing: 10px;
+                                alignment: start;
+                                w_search := LineEdit {
+                                    placeholder-text: "Search " + root.search_mode + "...";
+                                    width: 300px;
+                                    accepted => { root.workspace_search(self.text); }
+                                }
+                                
+                                // No results popup
+                                if root.search_error_open : Rectangle {
+                                    width: 140px; height: 28px;
+                                    background: H4Themes.active_accent;
+                                    border-radius: 4px;
+                                    Text {
+                                        text: "No results found";
+                                        color: H4Themes.active_content;
+                                        font-weight: 800; font-size: 11px;
+                                        vertical-alignment: center; horizontal-alignment: center;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    }
+
+                    // MANUAL SEARCH DRAWER
+                    if manual_search_open : Rectangle {
+                        height: 185px;
+                        background: H4Themes.background.darker(15%);
+                        border-width: 1px; border-color: H4Themes.active_accent.darker(60%);
+                        z: 50;
+
+                        VerticalBox {
+                            padding: 15px; spacing: 10px;
+                            VerticalLayout {
+                            spacing: 15px;
+                            
+                            // TARGETED SMART SEARCH
+                            Rectangle {
+                                background: H4Themes.background.darker(10%);
+                                border-radius: 4px; border-width: 1px; border-color: #ffffff05;
+                                VerticalBox {
+                                    padding: 12px; spacing: 8px;
+                                    Text { text: "TARGETED SMART SEARCH // HEURISTICS"; color: #666; font-size: 10px; font-weight: 900; }
+                                    HorizontalLayout {
+                                        spacing: 12px;
+                                        target_dropdown := H4Dropdown {
+                                            width: 200px; height: 32px;
+                                            options: ["Health", "Ammo", "Stamina", "Currency", "Mana", "XP"];
+                                            selected_idx: 0;
+                                        }
+                                        H4ButtonSolid {
+                                            text: "INITIATE TARGETED DISCOVERY"; width: 220px; height: 32px;
+                                            clicked => { root.targeted_smart_search(target_dropdown.selected_text); }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // MANUAL SCAN PARAMETERS
+                            VerticalLayout {
+                                spacing: 8px;
+                                Text { text: "MANUAL SCAN PARAMETERS // ACTIVE"; color: #666; font-size: 10px; font-weight: 900; }
+                                HorizontalLayout {
+                                    spacing: 12px;
+                                    alignment: start;
+                                    
+                                    search_val := LineEdit { 
+                                        placeholder-text: "Search Value..."; 
+                                        width: 140px; height: 32px;
+                                        font-size: 14px;
+                                    }
+                                    
+                                    size_dropdown := H4Dropdown { 
+                                        width: 120px; height: 32px;
+                                        options: ["1 Byte", "2 Bytes", "4 Bytes", "8 Bytes", "Float", "Double", "Custom AOB"]; 
+                                        selected_idx: 0;
+                                    }
+                                    
+                                    criteria_dropdown := H4Dropdown { 
+                                        width: 150px; height: 32px;
+                                        options: ["Exact Value", "Increased", "Decreased", "Changed", "Unchanged"];
+                                        selected_idx: 0;
+                                    }
+
+                                    H4ButtonSolid { 
+                                        text: root.scanning_active ? "STOP" : "SCAN"; 
+                                        width: 80px; height: 32px; 
+                                        accent: root.scanning_active ? #ff0000 : H4Themes.active_accent;
+                                        clicked => { 
+                                            if (root.scanning_active) {
+                                                root.cancel_scan();
+                                            } else {
+                                                root.start_manual_search(
+                                                    search_val.text, 
+                                                    size_dropdown.selected_text, 
+                                                    criteria_dropdown.selected_text, 
+                                                    "Manual"
+                                                ); 
+                                            }
+                                        } 
+                                    } 
+                                }
+                            }
+                        }
+      }
+                    }
+
+                    // SCAN RESULTS DISPLAY
+                    Rectangle {
+                        VerticalBox {
+                            padding: 20px; spacing: 15px;
+                            HorizontalLayout {
+                                Text { text: "SCAN RESULTS"; color: white; font-size: 18px; font-weight: 900; opacity: 0.9; }
+                                Rectangle { width: 100%; }
+                            }
+                            
+                            if root.scanning_active : Rectangle {
+                                height: 100px; background: H4Themes.background.darker(10%); border-radius: 8px;
+                                border-width: 1px; border-color: H4Themes.active_accent.darker(40%);
+                                VerticalBox {
+                                    padding: 15px; spacing: 10px;
+                                    HorizontalBox {
+                                        spacing: 15px;
+                                        // Loading Circle
+                                        Rectangle {
+                                            width: 40px; height: 40px;
+                                            Rectangle {
+                                                width: 100%; height: 100%; border-radius: 20px;
+                                                border-width: 3px; border-color: H4Themes.active_accent.darker(80%);
+                                            }
+                                            Rectangle {
+                                                width: 100%; height: 100%; border-radius: 20px;
+                                                border-width: 3px; border-color: H4Themes.active_accent;
+                                                clip: true;
+                                                // Simplified pulse/rotation via opacity animation
+                                                animate opacity { duration: 500ms; iteration-count: -1; }
+                                                opacity: 0.5;
+                                            }
+                                        }
+                                        VerticalLayout {
+                                            spacing: 5px;
+                                            HorizontalLayout {
+                                                Text { text: Math.round(root.scan_progress * 100) + "%"; color: H4Themes.active_accent; font-size: 14px; font-weight: 900; }
+                                                Rectangle { width: 10px; }
+                                                Text { 
+                                                    text: " >>> " + root.scan_status; 
+                                                    color: root.scanning_active ? H4Themes.active_accent : #aaa; 
+                                                    font-size: 12px; font-weight: 700; font-family: "monospace";
+                                                }
+                                            }
+                                            // Progress Bar
+                                            Rectangle {
+                                                height: 6px; background: #ffffff11; border-radius: 3px;
+                                                Rectangle {
+                                                    x: 0; width: root.scan_progress * parent.width;
+                                                    height: 100%; background: H4Themes.active_accent; border-radius: 3px;
+                                                    drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            ScrollView {
+                                VerticalBox {
+                                    alignment: start; spacing: 8px;
+                                    for res in root.scan_results: Rectangle {
+                                        height: 50px; background: #ffffff05; border-radius: 4px;
+                                        border-width: 1px; border-color: #ffffff08;
+                                        HorizontalBox {
+                                            padding-left: 15px; padding-right: 15px;
+                                            Text { height: 100%; text: res.label; color: #aaa; vertical-alignment: center; font-size: 13px; width: 120px; }
+                                            Text { height: 100%; text: res.address; color: #666; vertical-alignment: center; font-family: "monospace"; font-size: 12px; }
+                                            Rectangle { width: 100%; }
+                                            Text { height: 100%; text: res.value; color: H4Themes.active_accent; vertical-alignment: center; font-weight: 900; font-size: 16px; }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // BOTTOM ACTION BAR
+        Rectangle {
+            height: 80px; background: H4Themes.background.darker(30%);
+            border-width: 1px; border-color: #ffffff05;
+
+            // Theme & Profile Controls (Locked to Sidebar width)
+            Rectangle {
+                x: 0; width: 300px; height: 100%;
+                HorizontalBox {
+                    padding: 10px; spacing: 8px;
+                    alignment: center;
+                    H4ButtonGhost { 
+                        text: "THEME"; width: 80px; height: 35px;
+                        clicked => { 
+                            H4Themes.current_theme_idx = H4Themes.current_theme_idx + 1; 
+                            H4Themes.theme_changed(H4Themes.current_theme_idx);
+                        } 
+                    }
+                    H4ButtonGhost { 
+                        text: profiles_open ? "PIDs" : "SAVE/LOAD"; width: 100px; height: 35px;
+                        clicked => { profiles_open = !profiles_open; } 
+                    }
+                }
+            }
+
+            HorizontalBox {
+                padding: 15px; alignment: center; 
+                H4ButtonSolid { 
+                    text: root.scanning_active ? "STOP SMART SCAN" : "INITIALIZE SMART SCAN"; 
+                    width: 320px; height: 50px;
+                    accent: root.scanning_active ? #ff0000 : H4Themes.active_accent;
+                    clicked => { 
+                        if (root.scanning_active) {
+                            root.cancel_smart_scan();
+                        } else {
+                            if (root.dont_show_scan_warning) {
+                                root.confirm_smart_scan();
+                            } else {
+                                root.show_smart_scan_warning = true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // ASCII EMOTE (Bottom Right, Greyed out, Blended)
+            Text {
+                text: H4Themes.dev_mode ? "t( ' . ' t )" : "(b'.')b";
+                color: touch_emote.has_hover ? H4Themes.active_accent : #ffffff55;
+                font-size: 14px;
+                x: parent.width - 160px;
+                y: (parent.height - self.height) / 2 + (touch_emote.pressed ? 2px : 0px);
+                touch_emote := TouchArea { clicked => { H4Themes.dev_mode = !H4Themes.dev_mode; } }
+                animate color, y { duration: 100ms; }
+            }
+        }
+
+        // DEV CONSOLE
+        Rectangle {
+            height: H4Themes.dev_mode ? 200px : 0px;
+            background: #000000;
+            animate height { duration: 300ms; }
+            VerticalBox {
+                padding: 15px;
+                Text { text: "h4: active_state_attached"; color: #008800; font-family: "monospace"; font-size: 11px; }
+                HorizontalBox {
+                    height: 45px;
+                    input := LineEdit { text: ""; font-family: "monospace"; width: 100%; font-size: 11px; placeholder-text: "h4 command line..."; }
+                    H4ButtonGhost { text: "RUN"; width: 60px; clicked => { terminal_command(input.text); } }
+                }
+                ScrollView {
+                    VerticalBox {
+                        alignment: start;
+                        for entry in root.terminal_logs: Text { 
+                            text: "[" + entry.timestamp + "] " + entry.content; 
+                            color: #00880088; 
+                            font-family: "monospace"; font-size: 11px;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // SPLASH OVERLAY - Stays on top while show_splash is true
+    if show_splash : Rectangle {
+        width: 100%; height: 100%;
+        background: transparent;
+        z: 10000;
+        
+        logo_img := Image {
+            source: @image-url("../../assets/logo.png");
+            width: 480px; height: 480px;
+            x: (parent.width - 480px)/2 + jitter_x;
+            y: (parent.height - 480px)/2 + jitter_y;
+            opacity: logo_opacity;
+            image-fit: contain;
+        }
+
+        // Chromatic Aberration X ( building tension phase )
+        Image {
+            source: logo_img.source;
+            width: 480px; height: 480px;
+            x: (parent.width - 480px)/2 + jitter_x + r_offset;
+            y: (parent.height - 480px)/2 + jitter_y;
+            opacity: glitch_alpha * 0.3;
+            image-fit: contain; colorize: #ff0000;
+        }
+        Image {
+            source: logo_img.source;
+            width: 480px; height: 480px;
+            x: (parent.width - 480px)/2 + jitter_x + b_offset;
+            y: (parent.height - 480px)/2 + jitter_y;
+            opacity: glitch_alpha * 0.4;
+            image-fit: contain; colorize: #0000ff;
+        }
+
+        // Horizontal Slices
+        for slice_y in [0.3, 0.5, 0.7] : Rectangle {
+            x: (parent.width - 480px)/2 + jitter_x + (slice_y > 0.5 ? r_offset : b_offset);
+            y: slice_y * parent.height;
+            width: 480px; height: 10px;
+            background: transparent; // Ensure no black bar
+            clip: true; opacity: (glitch_alpha > 0.4) ? glitch_alpha : 0.0;
+            Image {
+                source: logo_img.source;
+                width: 1040px; height: 820px;
+                x: - jitter_x - (slice_y > 0.5 ? r_offset : b_offset) - (1040px - 480px)/2;
+                y: - (parent.y - (820px - 480px)/2);
+                image-fit: contain;
+            }
+        }
+
+        // Vertical Slices ( The Y corruption )
+        for slice_x in [0.4, 0.6] : Rectangle {
+            x: slice_x * parent.width;
+            y: (parent.height - 480px)/2 + jitter_y + (slice_x > 0.5 ? r_offset : b_offset) * 1.5;
+            width: 6px; height: 480px;
+            background: transparent; // Ensure no black bar
+            clip: true; opacity: (glitch_alpha > 0.7) ? glitch_alpha : 0.0;
+            Image {
+                source: logo_img.source;
+                width: 1040px; height: 820px;
+                x: - (parent.x - (1040px - 480px)/2);
+                y: - jitter_y - (slice_x > 0.5 ? r_offset : b_offset) * 1.5 - (820px - 480px)/2;
+                image-fit: contain; colorize: slice_x > 0.5 ? #00ff00 : #ff00ff;
+            }
+        }
+
+        // High Intensity Jitter Mask ( Fragmentation )
+        Rectangle {
+            x: (parent.width - 480px)/2 + jitter_x * 2.5;
+            y: (parent.height - 480px) / 2 + jitter_y;
+            width: 480px; height: 5px;
+            background: #ffffffaa;
+            opacity: glitch_alpha > 0.8 ? 0.9 : 0.0;
+        }
+    }
+
+    // FLOATING NOTIFICATION BAR ( HUD Level )
+    notification_bar := Rectangle {
+        y: show_notification ? 50px : -100px;
+        x: (parent.width - 400px) / 2;
+        width: 400px; height: 40px;
+        background: H4Themes.background.darker(50%);
+        border-radius: 4px; border-width: 2px; border-color: H4Themes.active_accent;
+        drop-shadow-blur: 20px; drop-shadow-color: H4Themes.active_accent;
+        z: 20000;
+        opacity: show_notification ? 1.0 : 0.0;
+        
+        HorizontalBox {
+            padding-left: 15px; padding-right: 15px;
+            Text {
+                text: "SYSTEM >> " + root.notification_text;
+                color: white; font-weight: 900; vertical-alignment: center;
+                font-family: "monospace"; font-size: 13px;
+            }
+        }
+
+        animate y, opacity { duration: 300ms; easing: ease-in-out; }
+    }
+
+    // SMART_SCAN_WARNING_HUD
+    if (root.show_smart_scan_warning) : Rectangle {
+        background: #000000e0; z: 60000;
+        VerticalBox {
+            padding: 40px; alignment: center;
+            Rectangle {
+                background: H4Themes.background; border-color: #ffaa00; border-width: 1px;
+                width: 500px; height: 350px;
+                VerticalBox {
+                    padding: 30px; spacing: 20px;
+                    HorizontalLayout {
+                        spacing: 15px;
+                        Text { text: "⚠️"; font-size: 32px; vertical-alignment: center; }
+                        Text { text: "UNAUTHORIZED_EXCAVATION"; color: #ffaa00; font-size: 18px; font-weight: 900; font-family: "monospace"; }
+                    }
+                    Text {
+                        text: "System is about to perform a heavy memory excavation. Application stability may be impacted (LAG DETECTED).\n\nAction: Go make a sammich. I'm not your mother, keep playing or chill - just don't blame me if you glitch the space-time continuum lol.";
+                        color: #ffffffcc; font-size: 14px; wrap: word-wrap;
+                    }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        Rectangle {
+                            width: 16px; height: 16px; border-width: 1px; border-color: #ffaa00;
+                            Rectangle { width: 10px; height: 10px; background: #ffaa00; opacity: root.dont_show_scan_warning ? 1.0 : 0.0; }
+                            TouchArea { clicked => { root.dont_show_scan_warning = !root.dont_show_scan_warning; } }
+                        }
+                        Text { text: "Don't warn me again (Locked Context)"; color: #888; font-size: 11px; vertical-alignment: center; }
+                    }
+                    HorizontalLayout {
+                        spacing: 20px;
+                        Rectangle { width: 100%; }
+                        H4ButtonOutline { text: "ABORT"; width: 100px; clicked => { root.show_smart_scan_warning = false; } }
+                        H4ButtonSolid { 
+                            text: "ENGAGE"; accent: #ffaa00; width: 140px;
+                            clicked => { 
+                                root.show_smart_scan_warning = false;
+                                root.confirm_smart_scan();
+                            } 
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // DISCOVERY CONFIG MODAL (The HUD Overlay)
+    if (root.show_discovery_config) : Rectangle {
+        background: #000000df; z: 50000;
+        
+        VerticalBox {
+            padding: 40px; alignment: center;
+            Rectangle {
+                background: H4Themes.background; border-color: H4Themes.active_accent; border-width: 1px;
+                width: 600px; height: 480px;
+
+                VerticalBox {
+                    padding: 24px; spacing: 12px;
+                    Text { text: "H4_SMART_SCAN // SIGNATURE_DATABASE"; color: H4Themes.active_accent; font-size: 16px; font-weight: 700; font-family: "monospace"; }
+                    
+                    Rectangle {
+                        height: 220px; background: #000; border-width: 1px; border-color: #ffffff22;
+                        Flickable {
+                            VerticalBox {
+                                alignment: start; padding: 10px; spacing: 8px;
+                                for sig in root.signatures : Rectangle {
+                                    height: 44px; background: #ffffff05; border-radius: 2px;
+                                    HorizontalLayout {
+                                        padding: 8px; spacing: 12px;
+                                        VerticalBox {
+                                            Text { text: sig.name; color: #fff; font-weight: 700; font-size: 13px; }
+                                            Text { text: sig.aliases; color: #666; font-size: 10px; font-family: "monospace"; }
+                                        }
+                                        Rectangle { width: 100%; }
+                                        Text { text: sig.value_type_str; color: H4Themes.active_accent; vertical-alignment: center; font-family: "monospace"; font-size: 11px; }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    VerticalBox {
+                        spacing: 8px;
+                        HorizontalLayout {
+                            spacing: 12px;
+                            VerticalBox { Text { text: "NAME"; font-size: 10px; color: #888; } n_name := LineEdit { text: ""; width: 140px; } }
+                            VerticalBox { Text { text: "ALIASES (CSV)"; font-size: 10px; color: #888; } n_aliases := LineEdit { text: ""; width: 280px; } }
+                            VerticalBox { Text { text: "PTR OFF"; font-size: 10px; color: #888; } n_ptr_off := LineEdit { text: ""; width: 60px; placeholder-text: "3"; } }
+                        }
+                        VerticalBox { Text { text: "AOB PATTERN (HEX)"; font-size: 10px; color: #888; } n_patterns := LineEdit { text: ""; width: 512px; } }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 16px;
+                        Rectangle { width: 100%; }
+                        H4ButtonOutline { text: "CLOSE"; width: 100px; clicked => { root.show_discovery_config = false; root.close_discovery_config(); } }
+                        H4ButtonSolid { 
+                            text: "ADD NODE"; 
+                            clicked => { 
+                                root.add_custom_signature(n_name.text, n_aliases.text, n_patterns.text, n_ptr_off.text);
+                                n_name.text = ""; n_aliases.text = ""; n_patterns.text = ""; n_ptr_off.text = "";
+                            } 
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

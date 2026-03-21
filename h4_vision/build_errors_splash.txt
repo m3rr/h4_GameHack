@@ -1,0 +1,370 @@
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:120:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 120 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   Compiling h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+error[E0433]: failed to resolve: could not find `LogicalLength` in `slint`
+   --> h4_vision\src\main.rs:105:39
+    |
+105 |                 s.set_jitter_x(slint::LogicalLength::new(jitter));
+    |                                       ^^^^^^^^^^^^^ could not find `LogicalLength` in `slint`
+
+error[E0433]: failed to resolve: could not find `LogicalLength` in `slint`
+   --> h4_vision\src\main.rs:106:39
+    |
+106 |                 s.set_r_offset(slint::LogicalLength::new(rgb));
+    |                                       ^^^^^^^^^^^^^ could not find `LogicalLength` in `slint`
+
+error[E0433]: failed to resolve: could not find `LogicalLength` in `slint`
+   --> h4_vision\src\main.rs:107:39
+    |
+107 |                 s.set_b_offset(slint::LogicalLength::new(-rgb));
+    |                                       ^^^^^^^^^^^^^ could not find `LogicalLength` in `slint`
+
+error[E0425]: cannot find type `H4Themes` in this scope
+   --> h4_vision\src\main.rs:173:21
+    |
+173 |         ui.global::<H4Themes>().set_current_theme_idx(cfg.theme_idx);
+    |                     ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find type `ProcessInfo` in this scope
+   --> h4_vision\src\main.rs:182:44
+    |
+182 |     let process_model = Rc::new(VecModel::<ProcessInfo>::default());
+    |                                            ^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find type `ScanEntry` in this scope
+   --> h4_vision\src\main.rs:183:44
+    |
+183 |     let results_model = Rc::new(VecModel::<ScanEntry>::default());
+    |                                            ^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find type `TerminalLog` in this scope
+   --> h4_vision\src\main.rs:184:45
+    |
+184 |     let terminal_model = Rc::new(VecModel::<TerminalLog>::default());
+    |                                             ^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find type `ProcessInfo` in this scope
+   --> h4_vision\src\main.rs:207:49
+    |
+207 |     fn update_process_model(model: &Rc<VecModel<ProcessInfo>>, procs: &[h4_shared::ProcessEntry], filter: &str, search_term: &str) {
+    |                                                 ^^^^^^^^^^^ not found in this scope
+    |
+help: you might be missing a type parameter
+    |
+207 |     fn update_process_model<ProcessInfo>(model: &Rc<VecModel<ProcessInfo>>, procs: &[h4_shared::ProcessEntry], filter: &str, search_term: &str) {
+    |                            +++++++++++++
+
+error[E0422]: cannot find struct, variant or union type `ProcessInfo` in this scope
+   --> h4_vision\src\main.rs:219:24
+    |
+219 |             model.push(ProcessInfo { 
+    |                        ^^^^^^^^^^^ not found in this scope
+
+error[E0422]: cannot find struct, variant or union type `TerminalLog` in this scope
+   --> h4_vision\src\main.rs:256:33
+    |
+256 |         term_model_refresh.push(TerminalLog {
+    |                                 ^^^^^^^^^^^ not found in this scope
+
+error[E0422]: cannot find struct, variant or union type `TerminalLog` in this scope
+   --> h4_vision\src\main.rs:268:32
+    |
+268 |         term_model_filter.push(TerminalLog {
+    |                                ^^^^^^^^^^^ not found in this scope
+
+error[E0422]: cannot find struct, variant or union type `ScanEntry` in this scope
+   --> h4_vision\src\main.rs:296:43
+    |
+296 |                     res_model_search.push(ScanEntry {
+    |                                           ^^^^^^^^^ not found in this scope
+
+error[E0422]: cannot find struct, variant or union type `TerminalLog` in this scope
+   --> h4_vision\src\main.rs:313:40
+    |
+313 |                 term_model_select.push(TerminalLog {
+    |                                        ^^^^^^^^^^^ not found in this scope
+
+error[E0422]: cannot find struct, variant or union type `TerminalLog` in this scope
+   --> h4_vision\src\main.rs:319:40
+    |
+319 |                 term_model_select.push(TerminalLog {
+    |                                        ^^^^^^^^^^^ not found in this scope
+
+error[E0422]: cannot find struct, variant or union type `ScanEntry` in this scope
+   --> h4_vision\src\main.rs:379:38
+    |
+379 |                     results_vec.push(ScanEntry {
+    |                                      ^^^^^^^^^ not found in this scope
+
+error[E0422]: cannot find struct, variant or union type `ScanEntry` in this scope
+   --> h4_vision\src\main.rs:473:38
+    |
+473 |                     results_vec.push(ScanEntry {
+    |                                      ^^^^^^^^^ not found in this scope
+
+error[E0422]: cannot find struct, variant or union type `ScanEntry` in this scope
+   --> h4_vision\src\main.rs:559:38
+    |
+559 |                     results_vec.push(ScanEntry {
+    |                                      ^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find type `H4Themes` in this scope
+   --> h4_vision\src\main.rs:596:36
+    |
+596 |             theme_idx: ui.global::<H4Themes>().get_current_theme_idx(),
+    |                                    ^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find type `H4Themes` in this scope
+   --> h4_vision\src\main.rs:617:29
+    |
+617 |                 ui.global::<H4Themes>().set_current_theme_idx(data.theme_idx);
+    |                             ^^^^^^^^ not found in this scope
+
+error[E0422]: cannot find struct, variant or union type `ScanEntry` in this scope
+   --> h4_vision\src\main.rs:627:45
+    |
+627 |                     results_model_load.push(ScanEntry {
+    |                                             ^^^^^^^^^ not found in this scope
+
+error[E0422]: cannot find struct, variant or union type `TerminalLog` in this scope
+   --> h4_vision\src\main.rs:646:38
+    |
+646 |             term_model_dispatch.push(TerminalLog {
+    |                                      ^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find type `H4Themes` in this scope
+   --> h4_vision\src\main.rs:657:41
+    |
+657 |             let theme_idx = ui.global::<H4Themes>().get_current_theme_idx();
+    |                                         ^^^^^^^^ not found in this scope
+
+error[E0599]: no method named `set_icon` found for reference `&Window` in the current scope
+  --> h4_vision\src\main.rs:93:25
+   |
+93 |         splash.window().set_icon(Some(icon.clone()));
+   |                         ^^^^^^^^ method not found in `&Window`
+
+error[E0433]: failed to resolve: use of undeclared type `MainWindow`
+   --> h4_vision\src\main.rs:163:14
+    |
+163 |     let ui = MainWindow::new()?;
+    |              ^^^^^^^^^^ use of undeclared type `MainWindow`
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> h4_vision\src\main.rs:265:32
+    |
+265 |     ui.on_filter_changed(move |mode| {
+    |                                ^^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `Sized` is not implemented for `str`
+    = note: all function arguments must have a statically known size
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> h4_vision\src\main.rs:270:72
+    |
+270 |             content: SharedString::from(format!("Filter applied: {}.", mode)),
+    |                                                                  --    ^^^^ doesn't have a size known at compile-time
+    |                                                                  |
+    |                                                                  required by this formatting parameter
+    |
+    = help: the trait `Sized` is not implemented for `str`
+    = note: this error originates in the macro `$crate::__export::format_args` which comes from the expansion of the macro `format` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:280:37
+    |
+280 |     ui.on_search_term_changed(move |term, mode| {
+    |                                     ^^^^
+281 |         let term_str = term.as_str();
+    |                        ---- type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+280 |     ui.on_search_term_changed(move |term: /* Type */, mode| {
+    |                                         ++++++++++++
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:351:25
+    |
+351 |                         ui.set_scan_progress(progress);
+    |                         ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:371:25
+    |
+371 |                         ui.set_scan_progress(0.9);
+    |                         ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:395:25
+    |
+395 |                         ui.set_scan_results(ModelRc::from(Rc::new(VecModel::from(results_vec))));
+    |                         ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:403:25
+    |
+403 |                         ui.set_scanning_active(false);
+    |                         ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:415:37
+    |
+415 |     ui.on_start_manual_search(move |val_str, size_str, criteria_str, _type_str| {
+    |                                     ^^^^^^^
+...
+420 |         let val_clone = val_str.to_string();
+    |                         ------- type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+415 |     ui.on_start_manual_search(move |val_str: /* Type */, size_str, criteria_str, _type_str| {
+    |                                            ++++++++++++
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:415:46
+    |
+415 |     ui.on_start_manual_search(move |val_str, size_str, criteria_str, _type_str| {
+    |                                              ^^^^^^^^
+...
+421 |         let size_clone = size_str.to_string();
+    |                          -------- type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+415 |     ui.on_start_manual_search(move |val_str, size_str: /* Type */, criteria_str, _type_str| {
+    |                                                      ++++++++++++
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:415:56
+    |
+415 |     ui.on_start_manual_search(move |val_str, size_str, criteria_str, _type_str| {
+    |                                                        ^^^^^^^^^^^^
+...
+422 |         let _crit_clone = criteria_str.to_string();
+    |                           ------------ type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+415 |     ui.on_start_manual_search(move |val_str, size_str, criteria_str: /* Type */, _type_str| {
+    |                                                                    ++++++++++++
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:435:25
+    |
+435 |                         ui.set_scan_progress(progress);
+    |                         ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:447:29
+    |
+447 | ...                   ui.set_scan_status(SharedString::from("SCANNING MEMORY...")); 
+    |                       ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:496:25
+    |
+496 |                         ui.set_scan_results(ModelRc::from(Rc::new(VecModel::from(results_vec))));
+    |                         ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:504:25
+    |
+504 |                         ui.set_scanning_active(false); 
+    |                         ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:516:39
+    |
+516 |     ui.on_targeted_smart_search(move |target| {
+    |                                       ^^^^^^
+...
+521 |         let target_str = target.to_string();
+    |                          ------ type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+516 |     ui.on_targeted_smart_search(move |target: /* Type */| {
+    |                                             ++++++++++++
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:535:25
+    |
+535 |                         ui.set_scan_progress(progress);
+    |                         ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:547:29
+    |
+547 | ...                   ui.set_scan_status(SharedString::from("SCANNING MEMORY...")); 
+    |                       ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:575:25
+    |
+575 |                         ui.set_scan_results(ModelRc::from(Rc::new(VecModel::from(results_vec))));
+    |                         ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:583:25
+    |
+583 |                         ui.set_scanning_active(false); 
+    |                         ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:592:30
+    |
+592 |     ui.on_save_profile(move |name| {
+    |                              ^^^^
+593 |         if name.is_empty() { return; }
+    |            ---- type must be known at this point
+    |
+help: consider giving this closure parameter an explicit type
+    |
+592 |     ui.on_save_profile(move |name: /* Type */| {
+    |                                  ++++++++++++
+
+error[E0277]: the size for values of type `str` cannot be known at compilation time
+   --> h4_vision\src\main.rs:642:34
+    |
+642 |     ui.on_terminal_command(move |cmd| {
+    |                                  ^^^ doesn't have a size known at compile-time
+    |
+    = help: the trait `Sized` is not implemented for `str`
+    = note: all function arguments must have a statically known size
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:657:29
+    |
+657 |             let theme_idx = ui.global::<H4Themes>().get_current_theme_idx();
+    |                             ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:667:13
+    |
+667 |             ui.window().set_minimized(true);
+    |             ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:673:26
+    |
+673 |             let is_max = ui.window().is_maximized();
+    |                          ^^ cannot infer type
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:680:23
+    |
+680 |             let pos = ui.window().position();
+    |                       ^^ cannot infer type
+
+Some errors have detailed explanations: E0277, E0282, E0422, E0425, E0433, E0599.
+For more information about an error, try `rustc --explain E0277`.
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:120:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 120 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error: could not compile `h4_vision` (bin "h4_vision") due to 49 previous errors

@@ -1,0 +1,70 @@
+    Checking windows v0.58.0
+   Compiling h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Checking fontique v0.7.0
+    Checking h4_engine v0.1.0 (D:\PROJECTS\h4_GameHack\h4_engine)
+    Checking i-slint-common v1.15.1
+    Checking parley v0.7.0
+    Checking i-slint-core v1.15.1
+    Checking i-slint-renderer-software v1.15.1
+    Checking i-slint-renderer-femtovg v1.15.1
+    Checking i-slint-backend-qt v1.15.1
+    Checking i-slint-backend-winit v1.15.1
+    Checking i-slint-backend-selector v1.15.1
+    Checking slint v1.15.1
+warning: unused import: `windows::Win32::System::Console::GetConsoleWindow`
+  --> h4_vision\src\main.rs:70:13
+   |
+70 |         use windows::Win32::System::Console::GetConsoleWindow;
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `HWND_TOP`, `SWP_NOSIZE`, `SWP_NOZORDER`, and `SetWindowPos`
+  --> h4_vision\src\main.rs:71:73
+   |
+71 | ...Messaging::{GetSystemMetrics, SetWindowPos, SWP_NOSIZE, SWP_NOZORDER, SM_CXSCREEN, SM_CYSCREEN, HWND_TOP};
+   |                                  ^^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^                            ^^^^^^^^
+
+error[E0382]: use of moved value: `ui_set`
+   --> h4_vision\src\main.rs:153:51
+    |
+ 94 |             let ui_set = ui_anim.clone();
+    |                 ------ move occurs because `ui_set` has type `slint::Weak<MainWindow>`, which does not implement the `Copy` trait
+ 95 |             let set_splash = move |opacity: f32, alpha: f32, j_x: f32, j_y: f32, rgb: f32| {
+    |                              ------------------------------------------------------------- value moved into closure here
+ 96 |                 let u_weak = ui_set.clone();
+    |                              ------ variable moved due to use in closure
+...
+153 |             let _ = slint::invoke_from_event_loop(move || {
+    |                                                   ^^^^^^^ value used here after move
+154 |                 if let Some(u) = ui_set.upgrade() {
+    |                                  ------ use occurs due to use in closure
+    |
+help: consider cloning the value before moving it into the closure
+    |
+ 95 ~             let value = ui_set.clone();
+ 96 ~             let set_splash = move |opacity: f32, alpha: f32, j_x: f32, j_y: f32, rgb: f32| {
+ 97 ~                 let u_weak = value.clone();
+    |
+
+warning: unused variable: `ui_refresh`
+   --> h4_vision\src\main.rs:192:9
+    |
+192 |     let ui_refresh = ui_handle.clone();
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_ui_refresh`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0382`.
+warning: `h4_vision` (bin "h4_vision") generated 3 warnings
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error: could not compile `h4_vision` (bin "h4_vision") due to 1 previous error; 3 warnings emitted

@@ -1,0 +1,22 @@
+[package]
+name = "h4_vision"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+slint = "1.9.0"
+h4_engine = { path = "../h4_engine" }
+h4_shared = { path = "../h4_shared" }
+log = "0.4"
+env_logger = "0.11"
+chrono = "0.4"
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0.102"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rand = "0.8"
+windows = { version = "0.58", features = ["Win32_UI_WindowsAndMessaging", "Win32_System_Console"] }
+
+[build-dependencies]
+slint-build = "1.9.0"
+winres = "0.1"

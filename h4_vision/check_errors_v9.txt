@@ -1,0 +1,79 @@
+   Compiling h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+warning: unused import: `h4_shared::ProcessEntry`
+ --> h4_vision\src\main.rs:3:5
+  |
+3 | use h4_shared::ProcessEntry;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `screen` found for reference `&Window` in the current scope
+  --> h4_vision\src\main.rs:96:39
+   |
+96 |     if let Some(screen) = ui.window().screen() {
+   |                                       ^^^^^^ method not found in `&Window`
+
+error[E0282]: type annotations needed
+  --> h4_vision\src\main.rs:97:27
+   |
+97 |         let screen_size = screen.size();
+   |                           ^^^^^^ cannot infer type
+
+error[E0599]: no function or associated item named `new` found for struct `MemoryManager` in the current scope
+   --> h4_vision\src\main.rs:270:30
+    |
+270 |         match MemoryManager::new(pid as u32) {
+    |                              ^^^ function or associated item not found in `MemoryManager`
+    |
+note: if you're trying to build a new `MemoryManager`, consider using `MemoryManager::attach` which returns `Result<MemoryManager, MemoryError>`
+   --> D:\PROJECTS\h4_GameHack\h4_engine\src\memory.rs:33:5
+    |
+ 33 |     pub fn attach(pid: u32) -> Result<Self, MemoryError> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0282]: type annotations needed
+   --> h4_vision\src\main.rs:272:28
+    |
+272 |                 let name = mgr.get_process_name().unwrap_or_default();
+    |                            ^^^ cannot infer type
+
+error[E0599]: no function or associated item named `default` found for struct `DiscoveryEngine` in the current scope
+   --> h4_vision\src\main.rs:389:63
+    |
+389 |     let discovery_engine_targeted = Arc::new(DiscoveryEngine::default()); // Fixed creation
+    |                                                               ^^^^^^^ function or associated item not found in `DiscoveryEngine`
+    |
+note: if you're trying to build a new `DiscoveryEngine`, consider using `DiscoveryEngine::new` which returns `DiscoveryEngine`
+   --> D:\PROJECTS\h4_GameHack\h4_engine\src\discovery.rs:22:5
+    |
+ 22 |     pub fn new() -> Self {
+    |     ^^^^^^^^^^^^^^^^^^^^
+
+error[E0282]: type annotations needed for `Arc<_, _>`
+   --> h4_vision\src\main.rs:400:13
+    |
+400 |         let discovery = Arc::clone(&discovery_engine_targeted);
+    |             ^^^^^^^^^
+...
+428 |                     discovery.targeted_scan(manager, &target_str)
+    |                     --------- type must be known at this point
+    |
+help: consider giving `discovery` an explicit type, where the placeholders `_` are specified
+    |
+400 |         let discovery: Arc<T, A> = Arc::clone(&discovery_engine_targeted);
+    |                      +++++++++++
+
+Some errors have detailed explanations: E0282, E0599.
+For more information about an error, try `rustc --explain E0282`.
+warning: `h4_vision` (bin "h4_vision") generated 1 warning
+warning: h4_vision@0.1.0: warning: Component is neither used nor exported
+warning: h4_vision@0.1.0:    --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:122:1
+warning: h4_vision@0.1.0:     |
+warning: h4_vision@0.1.0: 122 | component H4ButtonNeon inherits H4ButtonBase { drop-shadow-blur: 5px; drop-shadow-color: H4Themes.active_accent; }
+warning: h4_vision@0.1.0:     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+error: could not compile `h4_vision` (bin "h4_vision") due to 6 previous errors; 1 warning emitted
