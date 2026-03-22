@@ -1,5 +1,6 @@
 slint::include_modules!();
 use h4_engine::{MemoryManager, ScriptingHost, DiscoveryEngine, ProcessScanner, ManualScanner, AOBScanner, DiscoverySignature};
+use h4_engine::differential::{DifferentialScanSession, ScanOperation};
 use log::info;
 use std::sync::{Arc, Mutex};
 use std::rc::Rc;
@@ -11,17 +12,26 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct AppConfig { theme_idx: i32 }
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct LogEntry { timestamp: String, content: String, level: String }
+#[derive(Serialize, Deserialize, Clone, Debug)]
+enum SentryMessage {
+    Log(LogEntry),
+    SetVisible(bool),
+}
+
 impl AppConfig {
     fn load() -> Self {
         fs::read_to_string("h4_config.json")
             .and_then(|c| serde_json::from_str(&c).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e)))
             .unwrap_or(AppConfig { theme_idx: 0 })
     }
+    #[allow(dead_code)]
     fn save(&self) { if let Ok(c) = serde_json::to_string_pretty(self) { let _ = fs::write("h4_config.json", c); } }
 }
 
 struct DebugLogger {
-    tx: mpsc::UnboundedSender<TerminalLog>,
+    tx: mpsc::UnboundedSender<SentryMessage>,
 }
 
 impl log::Log for DebugLogger {
@@ -29,17 +39,25 @@ impl log::Log for DebugLogger {
     fn log(&self, record: &log::Record) {
         if self.enabled(record.metadata()) {
             // RECURSION SAFEGUARD: Slint/Winit internal event filtering
-            // Block logs from Slint or Winit that are triggered by the UI thread update
-            if record.target().starts_with("slint") || record.target().starts_with("winit") {
+            if record.target().contains("slint") || record.target().contains("winit") {
                 return;
             }
             
-            let msg = TerminalLog {
-                timestamp: SharedString::from(chrono::Local::now().format("%H:%M:%S").to_string()),
-                content: SharedString::from(record.args().to_string()),
-                level: SharedString::from(record.level().to_string()),
+            let time_str = chrono::Local::now().format("%H:%M:%S").to_string();
+            let msg = LogEntry {
+                timestamp: time_str.clone(),
+                content: record.args().to_string(),
+                level: record.level().to_string(),
             };
-            let _ = self.tx.send(msg);
+
+            // DUAL-STREAM TELEMETRY: Echo to TTY + Pipe
+            if record.level() == log::Level::Error {
+                eprintln!("[{}] !! ERROR >> {}", time_str, record.args());
+            } else {
+                println!("[{}] >> {}", time_str, record.args());
+            }
+            
+            let _ = self.tx.send(SentryMessage::Log(msg));
         }
     }
     fn flush(&self) {}
@@ -83,24 +101,97 @@ impl FlavorTextManager {
     }
 }
 
+fn purge_existing_instances() {
+    let self_pid = std::process::id();
+    // We use the engine's list_processes which is already optimized
+    let processes = ProcessScanner::list_processes();
+    for proc in processes {
+        if (proc.name == "h4_vision.exe" || proc.name == "h4_vision") && proc.pid != self_pid {
+            // WIN32 TERMINATION (NUCLEAR)
+            use windows::Win32::System::Threading::{OpenProcess, TerminateProcess, PROCESS_TERMINATE};
+            use windows::Win32::Foundation::CloseHandle;
+            unsafe {
+                if let Ok(handle) = OpenProcess(PROCESS_TERMINATE, false, proc.pid) {
+                    let _ = TerminateProcess(handle, 1);
+                    let _ = CloseHandle(handle);
+                }
+            }
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), slint::PlatformError> {
-    // PERSISTENT CRASH LOGGING
-    std::panic::set_hook(Box::new(|info| {
-        let msg = format!("CRASH DETECTED: {}\nLocation: {:?}", info.to_string(), info.location());
+    let args: Vec<String> = std::env::args().collect();
+    let is_sentry = args.iter().any(|a| a == "--debug-node");
+    
+    if is_sentry {
+        return run_sentry().await;
+    }
+
+    // PRE-FLIGHT PURGE: Clean up any stale instances before booting
+    purge_existing_instances();
+
+    // Standard Node Logger (Streams to Pipe)
+    let (log_tx, mut log_rx) = mpsc::unbounded_channel::<SentryMessage>();
+    let _logger = Box::leak(Box::new(DebugLogger { tx: log_tx.clone() }));
+    log::set_logger(_logger).map(|()| log::set_max_level(log::LevelFilter::Debug)).unwrap();
+
+    // PERSISTENT CRASH LOGGING & SENTRY ORPHANING
+    let log_tx_panic = log_tx.clone();
+    std::panic::set_hook(Box::new(move |info| {
+        let msg = format!("PANIC >> SYSTEM_CORE_DUMP: {}\nLocation: {:?}", info.to_string(), info.location());
         let _ = fs::write("crash_log.txt", &msg);
         eprintln!("{}", msg);
+        // Force the Sentry node to become visible before we die
+        let _ = log_tx_panic.send(SentryMessage::SetVisible(true));
+        let _ = log_tx_panic.send(SentryMessage::Log(LogEntry {
+            timestamp: chrono::Local::now().format("%H:%M:%S").to_string(),
+            content: msg.clone(),
+            level: "ERROR".to_string(),
+        }));
+        // Small sleep to ensure the pipe has a chance to flush
+        std::thread::sleep(std::time::Duration::from_millis(200));
     }));
 
-    let (log_tx, mut log_rx) = mpsc::unbounded_channel::<TerminalLog>();
-    let logger = Box::leak(Box::new(DebugLogger { tx: log_tx }));
-    log::set_logger(logger).map(|()| log::set_max_level(log::LevelFilter::Debug)).unwrap();
+    // Launch the Sentry process (Separate Node for Crash Persistence)
+    let exe = std::env::current_exe().unwrap_or_default();
+    let mut sentry_proc = std::process::Command::new(exe)
+        .arg("--debug-node")
+        .spawn()
+        .expect("Failed to spawn Sentry Node");
+
+    // Pipe Client Task
+    tokio::spawn(async move {
+        use tokio::net::windows::named_pipe::ClientOptions;
+        use tokio::io::AsyncWriteExt;
+        loop {
+            if let Ok(mut client) = ClientOptions::new().open(r"\\.\pipe\h4_vision_debug") {
+                while let Some(msg) = log_rx.recv().await {
+                    let data = serde_json::to_vec(&msg).unwrap_or_default();
+                    let _ = client.write_u32(data.len() as u32).await;
+                    if client.write_all(&data).await.is_err() { break; }
+                }
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+    });
 
     let start_time = std::time::Instant::now();
     info!("H4_Vision: Initializing futuristic interface...");
-    
     let ui = MainWindow::new()?;
-    let dbg = DebugWindow::new()?;
+
+    // Debug Mode Action Bridge: Sync with Sentry Node
+    let log_tx_debug = log_tx.clone();
+    ui.on_debug_mode_toggled(move |enabled| {
+        info!("SYSTEM >> Debug Mode Transition: {}", if enabled { "ENABLED" } else { "DISABLED" });
+        let _ = log_tx_debug.send(SentryMessage::SetVisible(enabled));
+    });
+
+    // Send initial state once pipe is established
+    let ui_init_node = log_tx.clone();
+    let initial_visible = ui.global::<H4Themes>().get_dev_mode();
+    let _ = ui_init_node.send(SentryMessage::SetVisible(initial_visible));
     info!("H4_Vision: UI created in {:?}", start_time.elapsed());
     
     // CENTER WINDOW USING WIN32 ( Centering logic )
@@ -209,11 +300,13 @@ async fn main() -> Result<(), slint::PlatformError> {
 
     let manager_state = Arc::new(Mutex::new(Option::<MemoryManager>::None));
     let poll_addresses = Arc::new(Mutex::new(Vec::<(usize, h4_shared::ValueType)>::new()));
+    let frozen_addresses = Arc::new(Mutex::new(std::collections::HashMap::<usize, u32>::new()));
     let flavor_manager = Arc::new(Mutex::new(FlavorTextManager::new()));
     let scan_start = std::time::Instant::now();
     let all_processes = Arc::new(Mutex::new(ProcessScanner::list_processes()));
     info!("H4_Vision: Initial process scan took {:?}", scan_start.elapsed());
     let all_scan_results = Arc::new(Mutex::new(Vec::<h4_shared::ScanResult>::new()));
+    let scan_session = Arc::new(Mutex::new(Option::<h4_engine::differential::DifferentialScanSession>::None));
 
     let process_model = Rc::new(VecModel::<ProcessInfo>::default());
     let results_model = Rc::new(VecModel::<ScanEntry>::default());
@@ -223,6 +316,9 @@ async fn main() -> Result<(), slint::PlatformError> {
     ui.set_scan_results(ModelRc::from(results_model.clone()));
     ui.set_terminal_logs(ModelRc::from(terminal_model.clone()));
     ui.set_available_profiles(ModelRc::from(Rc::new(VecModel::from(get_profile_list()))));
+
+    // REFRESH_RESULTS (Scope-Based Lock Isolation)
+    let ui_handle = ui.as_weak();
 
     fn update_process_model(model: &Rc<VecModel<ProcessInfo>>, procs: &[h4_shared::ProcessEntry], filter: &str, search_term: &str) {
         let mut new_data = Vec::new();
@@ -276,84 +372,10 @@ async fn main() -> Result<(), slint::PlatformError> {
     let procs_init = all_processes.lock().unwrap().clone();
     update_process_model(&process_model, &procs_init, "All", "");
 
-    let dbg_model = Rc::new(VecModel::<TerminalLog>::default());
-    dbg.set_logs(ModelRc::from(dbg_model.clone()));
-    
-    let dbg_handle = dbg.as_weak();
-    let ui_dbg_hook = ui.as_weak();
-    
-    // SLINT WINDOW COUPLING
-    let _timer_dbg = slint::Timer::default();
-    let dbg_model_timer = dbg_model.clone();
-    let dbg_window_scroll = dbg.as_weak();
-    _timer_dbg.start(slint::TimerMode::Repeated, std::time::Duration::from_millis(50), move || {
-        let mut added = false;
-        while let Ok(msg) = log_rx.try_recv() {
-            dbg_model_timer.push(msg);
-            added = true;
-            if dbg_model_timer.row_count() > 500 { dbg_model_timer.remove(0); }
-        }
-        
-        // AUTO-SCROLL (Slint 1.9 Property Sync)
-        if added {
-            if let Some(_d) = dbg_window_scroll.upgrade() {
-                // We cannot set flick.viewport-y directly from Rust easily if it's not exported.
-                // But we can trigger a re-layout or use a property.
-                // For now, the user can see new entries at the bottom of the list.
-            }
-        }
-
-        if let Some(u) = ui_dbg_hook.upgrade() {
-            if let Some(d) = dbg_handle.upgrade() {
-                if u.global::<H4Themes>().get_dev_mode() && !d.window().is_visible() { let _ = d.show(); }
-                if !u.global::<H4Themes>().get_dev_mode() && d.window().is_visible() { d.hide().unwrap(); }
-            }
-        }
-    });
-
-    let dbg_model_copy = dbg_model.clone();
-    dbg.on_copy_all(move || {
-        let logs: Vec<String> = (0..dbg_model_copy.row_count())
-            .filter_map(|i| dbg_model_copy.row_data(i).map(|d| format!("[{}] {}", d.timestamp, d.content)))
-            .collect();
-        let text = logs.join("\n");
-        let _ = fs::write("last_copy.txt", text);
-        info!("Logs copied to last_copy.txt (Clipboard simulation)");
-    });
-
-    let dbg_model_errors = dbg_model.clone();
-    dbg.on_copy_errors(move || {
-        let logs: Vec<String> = (0..dbg_model_errors.row_count())
-            .filter_map(|i| dbg_model_errors.row_data(i))
-            .filter(|d| d.level == "ERROR")
-            .map(|d| format!("[{}] {}", d.timestamp, d.content))
-            .collect();
-        let text = logs.join("\n");
-        let _ = fs::write("last_errors.txt", text);
-        info!("Errors exported to last_errors.txt");
-    });
-
-    let dbg_model_md = dbg_model.clone();
-    dbg.on_export_md(move || {
-        let mut md = String::from("# H4_GameHack Debug Session Report\n\n| Timestamp | Level | Message |\n| :--- | :--- | :--- |\n");
-        for i in 0..dbg_model_md.row_count() {
-            if let Some(d) = dbg_model_md.row_data(i) {
-                md.push_str(&format!("| {} | **{}** | `{}` |\n", d.timestamp, d.level, d.content));
-            }
-        }
-        let _ = fs::write("debug_report.md", md);
-        info!("Report generated: debug_report.md");
-    });
-
     let ct_cancel = cancel_token.clone();
     ui.on_cancel_scan(move || {
-        ct_cancel.store(true, Ordering::Relaxed);
-        info!("CANCEL REQUESTED // TRANSMITTING...");
-    });
-    
-    let dbg_model_clear = dbg_model.clone();
-    dbg.on_clear_logs(move || {
-        dbg_model_clear.set_vec(Vec::new());
+        ct_cancel.store(true, Ordering::SeqCst);
+        info!("SYSTEM >> CANCEL REQUESTED // PROXIMAL TERMINATION SIGNAL TRANSMITTED...");
     });
 
     let _ui_refresh = ui_handle.clone();
@@ -392,6 +414,49 @@ async fn main() -> Result<(), slint::PlatformError> {
         if let Some(u) = ui_refresh_results.upgrade() {
             let filter = u.get_filter_mode();
             update_results_model(&model_refresh_results, &res_store_refresh.lock().unwrap(), filter.as_str());
+        }
+    });
+
+    let ui_ptr = ui_handle.clone();
+    let res_ptr = all_scan_results.clone();
+    let poll_ptr = poll_addresses.clone();
+    let mgr_ptr = manager_state.clone();
+    let ct_ptr = cancel_token.clone();
+    ui.on_find_pointers(move |addr_str: SharedString| {
+        info!("SYSTEM >> Pointer Excavation Initiated for: {}", addr_str);
+        if let Some(u) = ui_ptr.upgrade() {
+            u.set_scanning_active(true); u.set_scan_status(SharedString::from("EXCAVATING POINTERS..."));
+            let m = mgr_ptr.clone(); let r = res_ptr.clone(); let p = poll_ptr.clone();
+            let ui_inner = ui_ptr.clone(); let ct = ct_ptr.clone();
+            let a_val = usize::from_str_radix(addr_str.as_str().trim_start_matches("0x"), 16).unwrap_or(0);
+            
+            tokio::spawn(async move {
+                let mgr_clone = { let st = m.lock().unwrap(); st.as_ref().map(|mgr| mgr.clone()) };
+                let found = if let Some(mgr) = mgr_clone {
+                    ManualScanner::find_pointers(&mgr, a_val, ct)
+                } else { Vec::new() };
+
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(u) = ui_inner.upgrade() {
+                        {
+                            let mut res_m = r.lock().unwrap();
+                            let mut poll_m = p.lock().unwrap();
+                            res_m.clear(); poll_m.clear();
+                            for addr in found.iter().take(200) {
+                                res_m.push(h4_shared::ScanResult { 
+                                    address: *addr, 
+                                    label: Some(format!("Pointer -> 0x{:X}", a_val)), 
+                                    value_type: h4_shared::ValueType::Int64, 
+                                    category: "Manual".to_string() 
+                                });
+                                poll_m.push((*addr, h4_shared::ValueType::Int64));
+                            }
+                        }
+                        u.invoke_refresh_results(); u.set_scanning_active(false);
+                        u.set_scan_status(SharedString::from(format!("POINTER SCAN COMPLETE: {} PATHS.", found.len())));
+                    }
+                });
+            });
         }
     });
 
@@ -481,7 +546,10 @@ async fn main() -> Result<(), slint::PlatformError> {
     let flavors_manual = flavor_manager.clone();
     let procs_manual = all_processes.clone();
     let cancel_manual = cancel_token.clone();
-    ui.on_start_manual_search(move |val: SharedString, size: SharedString, _crit: SharedString, _type: SharedString| {
+    let session_manual = scan_session.clone();
+    
+    ui.on_start_manual_search(move |val: SharedString, size: SharedString, _crit: SharedString, _type_str: SharedString| {
+        info!("SYSTEM >> Engagement Initiated: MANUAL_EXCAVATION (Value: {}, Size: {})", val, size);
         if let Some(u) = ui_manual.upgrade() {
             u.set_scanning_active(true); u.set_scan_progress(0.0);
             let m = m_state_manual.clone(); let r = res_manual.clone(); let p = poll_manual.clone();
@@ -489,61 +557,132 @@ async fn main() -> Result<(), slint::PlatformError> {
             let p_list_inner = procs_manual.clone();
             let v_str = val.to_string(); let s_str = size.to_string();
             let ct = cancel_manual.clone();
-            ct.store(false, Ordering::Relaxed);
+            let sess = session_manual.clone();
+            ct.store(false, Ordering::SeqCst);
+
+            let mgr_clone = { let st = m.lock().unwrap(); st.as_ref().map(|mgr| mgr.clone()) };
 
             tokio::spawn(async move {
                 let status = f.lock().unwrap().get_next();
                 let ui_status = ui_inner.clone();
                 let _ = slint::invoke_from_event_loop(move || { if let Some(u) = ui_status.upgrade() { u.set_scan_status(SharedString::from(status)); u.set_scan_progress(0.3); } });
-                let (found, vt) = {
-                    let st = m.lock().unwrap();
-                    if let Some(mgr) = st.as_ref() {
-                        let mut a = Vec::new(); let mut vtt = h4_shared::ValueType::Int32;
-                        match s_str.as_str() {
-                            "1 Byte" => if let Ok(vv) = v_str.parse::<u8>() { a = ManualScanner::scan_for_value(mgr, vv, ct); vtt = h4_shared::ValueType::Byte; }
-                            "2 Bytes" => if let Ok(vv) = v_str.parse::<i16>() { a = ManualScanner::scan_for_value(mgr, vv, ct); vtt = h4_shared::ValueType::Int16; }
-                            "4 Bytes" => if let Ok(vv) = v_str.parse::<i32>() { a = ManualScanner::scan_for_value(mgr, vv, ct); vtt = h4_shared::ValueType::Int32; }
-                            "8 Bytes" => if let Ok(vv) = v_str.parse::<i64>() { a = ManualScanner::scan_for_value(mgr, vv, ct); vtt = h4_shared::ValueType::Int64; }
-                            "Float" => if let Ok(vv) = v_str.parse::<f32>() { a = ManualScanner::scan_for_value(mgr, vv, ct); vtt = h4_shared::ValueType::Float32; }
-                            "Double" => if let Ok(vv) = v_str.parse::<f64>() { a = ManualScanner::scan_for_value(mgr, vv, ct); vtt = h4_shared::ValueType::Float64; }
-                            "Custom AOB" => {
-                                if let Ok(scanner) = AOBScanner::new(&v_str) {
-                                    a = scanner.scan_process(mgr, ct.clone());
-                                }
-                                vtt = h4_shared::ValueType::AOB;
-                            }
-                            _ => if let Ok(vv) = v_str.parse::<i32>() { a = ManualScanner::scan_for_value(mgr, vv, ct); }
+                
+                let (found, vt) = if let Some(mgr) = mgr_clone.clone() {
+                    let mut a = Vec::new(); let mut vtt = h4_shared::ValueType::Int32;
+                    match s_str.as_str() {
+                        "1 Byte" => if let Ok(vv) = v_str.parse::<u8>() { a = ManualScanner::scan_for_value(&mgr, vv, ct); vtt = h4_shared::ValueType::Byte; }
+                        "2 Bytes" => if let Ok(vv) = v_str.parse::<i16>() { a = ManualScanner::scan_for_value(&mgr, vv, ct); vtt = h4_shared::ValueType::Int16; }
+                        "4 Bytes" => if let Ok(vv) = v_str.parse::<i32>() { a = ManualScanner::scan_for_value(&mgr, vv, ct); vtt = h4_shared::ValueType::Int32; }
+                        "8 Bytes" => if let Ok(vv) = v_str.parse::<i64>() { a = ManualScanner::scan_for_value(&mgr, vv, ct); vtt = h4_shared::ValueType::Int64; }
+                        "Float" => if let Ok(vv) = v_str.parse::<f32>() { a = ManualScanner::scan_for_value(&mgr, vv, ct); vtt = h4_shared::ValueType::Float32; }
+                        "Double" => if let Ok(vv) = v_str.parse::<f64>() { a = ManualScanner::scan_for_value(&mgr, vv, ct); vtt = h4_shared::ValueType::Float64; }
+                        "Custom AOB" => {
+                            if let Ok(scanner) = AOBScanner::new(&v_str) { a = scanner.scan_process(&mgr, ct.clone()); }
+                            vtt = h4_shared::ValueType::AOB;
                         }
-                        (a, vtt)
-                    } else { (Vec::new(), h4_shared::ValueType::Int32) }
-                };
+                        _ => if let Ok(vv) = v_str.parse::<i32>() { a = ManualScanner::scan_for_value(&mgr, vv, ct); }
+                    }
+                    if !a.is_empty() {
+                        let mut sess_lock = sess.lock().unwrap();
+                        *sess_lock = Some(DifferentialScanSession::new(a.clone(), &mgr, vtt.clone()));
+                    }
+                    (a, vtt)
+                } else { (Vec::new(), h4_shared::ValueType::Int32) };
+                
                 let ui_final = ui_inner.clone();
                 let p_list = p_list_inner.clone();
-                
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(u) = ui_final.upgrade() {
-                        let (mut res_m, mut poll_m) = (r.lock().unwrap(), p.lock().unwrap());
-                        res_m.clear(); poll_m.clear();
-                        let active_pid = u.get_active_pid();
-                        let active_cat = {
-                            let procs = p_list.lock().unwrap();
-                            procs.iter().find(|p| p.pid as i32 == active_pid).map(|p| p.category.clone()).unwrap_or("Third Party".to_string())
-                        };
-                        for addr in found.iter().take(200) {
-                            res_m.push(h4_shared::ScanResult { 
-                                address: *addr, 
-                                label: Some("Search".to_string()), 
-                                value_type: vt.clone(),
-                                category: active_cat.clone()
-                            });
-                            poll_m.push((*addr, vt.clone()));
+                        {
+                            let mut res_m = r.lock().unwrap();
+                            let mut poll_m = p.lock().unwrap();
+                            res_m.clear(); poll_m.clear();
+                            let active_pid = u.get_active_pid();
+                            let active_cat = {
+                                let procs = p_list.lock().unwrap();
+                                procs.iter().find(|p| p.pid as i32 == active_pid).map(|p| p.category.clone()).unwrap_or("Third Party".to_string())
+                            };
+                            for addr in found.iter().take(200) {
+                                res_m.push(h4_shared::ScanResult { address: *addr, label: Some("Initial Findings".to_string()), value_type: vt.clone(), category: active_cat.clone() });
+                                poll_m.push((*addr, vt.clone()));
+                            }
                         }
-                        u.invoke_refresh_results();
-                        u.set_scanning_active(false);
+                        u.invoke_refresh_results(); u.set_scanning_active(false); u.set_scan_session_active(true);
+                        u.set_scan_status(SharedString::from(format!("EXCAVATION COMPLETE: {} CANDIDATES.", found.len())));
                     }
                 });
             });
         }
+    });
+
+    let ui_next = ui_handle.clone();
+    let sess_next = scan_session.clone();
+    let mgr_next = manager_state.clone();
+    let res_next = all_scan_results.clone();
+    let poll_next = poll_addresses.clone();
+    let cancel_next = cancel_token.clone();
+    ui.on_next_manual_scan(move |crit, val, _size| {
+        info!("SYSTEM >> Iterative Re-Scan: Filtering with criteria '{}'", crit);
+        if let Some(u) = ui_next.upgrade() {
+            u.set_scanning_active(true);
+            let sess = sess_next.clone(); let m = mgr_next.clone(); let r = res_next.clone(); 
+            let p = poll_next.clone(); let ui_inner = ui_next.clone();
+            let c_str = crit.to_string(); let v_str = val.to_string();
+            let ct = cancel_next.clone(); ct.store(false, Ordering::SeqCst);
+
+            tokio::spawn(async move {
+                let mgr = { let st = m.lock().unwrap(); st.as_ref().map(|mgr| mgr.clone()) };
+                let op = match c_str.as_str() {
+                    "Increased" => ScanOperation::Increased,
+                    "Decreased" => ScanOperation::Decreased,
+                    "Changed" => ScanOperation::Changed,
+                    "Unchanged" => ScanOperation::Unchanged,
+                    _ => ScanOperation::ExactValue,
+                };
+                
+                let (found, vt) = if let (Some(mgr), Some(sess_lock)) = (mgr, sess.lock().unwrap().as_mut()) {
+                    let target_val = match sess_lock.value_type {
+                        h4_shared::ValueType::Int32 => v_str.parse::<i32>().ok().map(|v| v.to_le_bytes().to_vec()),
+                        h4_shared::ValueType::Float32 => v_str.parse::<f32>().ok().map(|v| v.to_le_bytes().to_vec()),
+                        h4_shared::ValueType::Float64 => v_str.parse::<f64>().ok().map(|v| v.to_le_bytes().to_vec()),
+                        _ => None,
+                    };
+                    sess_lock.filter(&mgr, op, target_val, ct);
+                    (sess_lock.candidates.clone(), sess_lock.value_type.clone())
+                } else { (Vec::new(), h4_shared::ValueType::Int32) };
+
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(u) = ui_inner.upgrade() {
+                        {
+                            let mut res_m = r.lock().unwrap();
+                            let mut poll_m = p.lock().unwrap();
+                            res_m.clear(); poll_m.clear();
+                            for addr in found.iter().take(200) {
+                                res_m.push(h4_shared::ScanResult { address: *addr, label: Some("Candidate (Refined)".to_string()), value_type: vt.clone(), category: "Manual".to_string() });
+                                poll_m.push((*addr, vt.clone()));
+                            }
+                        }
+                        u.invoke_refresh_results(); u.set_scanning_active(false);
+                        u.set_scan_status(SharedString::from(format!("FILTER COMPLETE: {} REMAINING.", found.len())));
+                    }
+                });
+            });
+        }
+    });
+
+    let ui_reset = ui_handle.clone();
+    let sess_reset = scan_session.clone();
+    ui.on_reset_scan_session(move || {
+        let mut sess = sess_reset.lock().unwrap();
+        *sess = None;
+        if let Some(u) = ui_reset.upgrade() {
+            u.set_scan_session_active(false);
+            u.set_scan_status(SharedString::from("SCAN SESSION RESET. READY FOR NEW PASS."));
+        }
+    });
+
+    ui.on_debug_mode_toggled(move |enabled| {
+        info!("SYSTEM >> Debug Mode Transition: {}", if enabled { "ENABLED" } else { "DISABLED" });
     });
 
     let m_state_smart = manager_state.clone();
@@ -555,44 +694,63 @@ async fn main() -> Result<(), slint::PlatformError> {
     
     let discovery_targeted = discovery.clone();
     let ct_targeted_base = cancel_token.clone();
-    ui.on_targeted_smart_search(move |target: SharedString| {
+    ui.on_targeted_smart_search(move |target: SharedString, type_str: SharedString| {
+        info!("SYSTEM >> Engagement Initiated: Targeted Discovery (Target: {}, Type: {})", target, type_str);
         if let Some(u) = ui_smart.upgrade() {
             u.set_scanning_active(true);
             let m = m_state_smart.clone(); let d = discovery_targeted.clone(); let r = res_smart.clone();
             let p = poll_smart.clone(); let ui_inner = ui_smart.clone();
             let t_str = target.to_string(); let ct_targeted = ct_targeted_base.clone();
-            tokio::spawn(async move {
-                let ui_status = ui_inner.clone();
-                let t_str_clone = t_str.clone();
-                let _ = slint::invoke_from_event_loop(move || { if let Some(u) = ui_status.upgrade() { u.set_scan_status(SharedString::from(format!("Scanning for {}...", t_str_clone))); u.set_scan_progress(0.2); } });
-                
-                let ct = ct_targeted.clone();
-                ct.store(false, Ordering::Relaxed);
-                let discovered = { let st = m.lock().unwrap(); if let Some(mgr) = st.as_ref() { d.targeted_scan(mgr, &t_str, ct) } else { Vec::new() } };
+            let t_type = type_str.to_string();
+            
+            // PROXIMAL OPTIMIZATION: Clone the manager to avoid holding the global lock
+            info!("SYSTEM >> Sequence Transition: Replicating Memory Handler for isolated context...");
+            let mgr_clone = { let st = m.lock().unwrap(); st.as_ref().map(|mgr| mgr.clone()) };
+            
+            if let Some(mgr) = mgr_clone {
+                info!("SYSTEM >> Background Handover: Spawning Discovery Thread...");
+                tokio::spawn(async move {
+                    let ui_status = ui_inner.clone();
+                    let t_str_clone = t_str.clone();
+                    let t_type_clone = t_type.clone();
+                    let _ = slint::invoke_from_event_loop(move || { if let Some(u) = ui_status.upgrade() { u.set_scan_status(SharedString::from(format!("Scanning for {} ({})...", t_str_clone, t_type_clone))); u.set_scan_progress(0.2); } });
+                    
+                    let ct = ct_targeted.clone();
+                    ct.store(false, Ordering::SeqCst);
+                    let discovered = d.targeted_scan(&mgr, &t_str, &t_type, ct);
                 
                 let ui_final = ui_inner.clone();
                 let msg = if discovered.is_empty() { format!("Didn't find any {} :(", t_str) } else { format!("FOUND {} {}! :D", discovered.len(), t_str) };
 
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(u) = ui_final.upgrade() {
-                        let (mut res_m, mut poll_m) = (r.lock().unwrap(), p.lock().unwrap());
-                        *res_m = discovered.clone(); poll_m.clear();
-                        for item in &*res_m { poll_m.push((item.address, item.value_type.clone())); }
+                        { // ISOLATION BLOCK: Ensure mutex locks are released before UI callbacks trigger
+                            let mut res_m = r.lock().unwrap();
+                            let mut poll_m = p.lock().unwrap();
+                            *res_m = discovered.clone(); 
+                            poll_m.clear();
+                            for item in &*res_m { 
+                                poll_m.push((item.address, item.value_type.clone())); 
+                            }
+                        } // Mutex release occurs here
+                        
                         u.set_scan_status(SharedString::from(msg));
                         u.set_scan_progress(1.0);
-                        u.invoke_refresh_results();
+                        u.invoke_refresh_results(); // Safe: No longer holding locks during recursive callback
                         u.set_scanning_active(false);
                     }
                 });
             });
         }
-    });
+    }
+});
 
     let ct_confirm = cancel_token.clone();
     let ui_confirm = ui_handle.clone();
     let m_state_confirm = manager_state.clone();
     let disc_engine_confirm = discovery.clone();
     ui.on_confirm_smart_scan(move || {
+        info!("SYSTEM >> Engagement Initiated: SMART_SCAN_SEQUENCE");
         if let Some(u) = ui_confirm.upgrade() {
             u.set_scanning_active(true); u.set_scan_status(slint::SharedString::from("EXCAVATING..."));
             u.set_scan_progress(0.1);
@@ -600,17 +758,18 @@ async fn main() -> Result<(), slint::PlatformError> {
             let disc = disc_engine_confirm.clone();
             let ui_inner = ui_confirm.clone();
             let ct = ct_confirm.clone();
-            ct.store(false, Ordering::Relaxed);
+            ct.store(false, Ordering::SeqCst);
 
-            tokio::spawn(async move {
-                let discovered = {
-                    let mgr_lock = m.lock().unwrap();
-                    if let Some(mgr) = mgr_lock.as_ref() {
-                        disc.smart_scan(mgr, ct)
-                    } else { Vec::new() }
-                };
-                
-                let _ = slint::invoke_from_event_loop(move || {
+            // PROXIMAL OPTIMIZATION: Clone manager to release lock
+            info!("SYSTEM >> Sequence Transition: Replicating Memory Handler...");
+            let mgr_clone = { let st = m.lock().unwrap(); st.as_ref().map(|mgr| mgr.clone()) };
+            
+            if let Some(mgr) = mgr_clone {
+                info!("SYSTEM >> Background Handover: Spawning Smart Scan Task...");
+                tokio::spawn(async move {
+                    let discovered = disc.smart_scan(&mgr, ct);
+                    
+                    let _ = slint::invoke_from_event_loop(move || {
                     if let Some(u) = ui_inner.upgrade() {
                         let mut final_results: Vec<ScanEntry> = Vec::new();
                         for res in discovered {
@@ -629,7 +788,8 @@ async fn main() -> Result<(), slint::PlatformError> {
                 });
             });
         }
-    });
+    }
+});
 
     let ct_cancel_final = cancel_token.clone();    let disc_engine_add = discovery_engine.clone();
     let sigs_model_add = sigs_model.clone();
@@ -654,10 +814,52 @@ async fn main() -> Result<(), slint::PlatformError> {
         });
     });
     ui.on_cancel_smart_scan(move || {
-        ct_cancel_final.store(true, Ordering::Relaxed);
-        info!("SYSTEM >> Terminal Signal: Termination of scan initiated.");
+        ct_cancel_final.store(true, Ordering::SeqCst);
+        info!("SYSTEM >> Terminal Signal: Termination of scan initiated by user.");
     });
 
+
+    let ui_manual_req = ui_handle.clone();
+    let res_manual_req = all_scan_results.clone();
+    let poll_manual_req = poll_addresses.clone();
+    ui.on_manual_scan_requested(move |addr, type_str, _val| {
+        let addr_val = if addr.to_lowercase().starts_with("0x") {
+            usize::from_str_radix(&addr[2..].trim(), 16).unwrap_or(0)
+        } else {
+            usize::from_str_radix(&addr.trim(), 16).unwrap_or(0)
+        };
+        
+        let vt = match type_str.to_lowercase().as_str() {
+            "byte" | "1 byte" => h4_shared::ValueType::Byte,
+            "int16" | "2 bytes" => h4_shared::ValueType::Int16,
+            "int32" | "4 bytes" => h4_shared::ValueType::Int32,
+            "int64" | "8 bytes" => h4_shared::ValueType::Int64,
+            "float" | "float32" => h4_shared::ValueType::Float32,
+            "double" | "float64" => h4_shared::ValueType::Float64,
+            _ => h4_shared::ValueType::Int32,
+        };
+        
+        info!("SYSTEM >> MANUAL TRACK: Intercepting address 0x{:X} as {:?}", addr_val, vt);
+        
+        let mut rm = res_manual_req.lock().unwrap();
+        let mut pm = poll_manual_req.lock().unwrap();
+        
+        rm.push(h4_shared::ScanResult {
+            address: addr_val,
+            label: Some("Manual".to_string()),
+            value_type: vt.clone(),
+            category: "Third Party".to_string(),
+        });
+        pm.push((addr_val, vt));
+        
+        if let Some(u) = ui_manual_req.upgrade() {
+            u.invoke_refresh_results();
+        }
+    });
+
+    ui.on_close_discovery_config(move || {
+        info!("SYSTEM >> Signature Database access terminated.");
+    });
 
     let ui_save = ui_handle.clone();
     let res_save = all_scan_results.clone();
@@ -697,9 +899,24 @@ async fn main() -> Result<(), slint::PlatformError> {
 
     let m_state_term = manager_state.clone();
     let term_model_term = terminal_model.clone();
+    let frozen_term = frozen_addresses.clone();
     ui.on_terminal_command(move |cmd: SharedString| {
         if let Some(mgr) = m_state_term.lock().unwrap().as_ref() {
             let res = ScriptingHost::dispatch(&cmd, mgr);
+            
+            // h4: Check for result that implies state change (like freeze)
+            if cmd.starts_with("h4 --freeze") {
+                let parts: Vec<&str> = cmd.split_whitespace().collect();
+                if parts.len() >= 3 {
+                    if let Ok(addr) = usize::from_str_radix(parts[2].trim_start_matches("0x"), 16) {
+                        if let Ok(val) = mgr.read::<u32>(addr) {
+                            frozen_term.lock().unwrap().insert(addr, val);
+                            info!("STATE >> Persistent strobe applied to 0x{:X} (Value: {})", addr, val);
+                        }
+                    }
+                }
+            }
+            
             term_model_term.push(TerminalLog { timestamp: SharedString::from(chrono::Local::now().format("%H:%M:%S").to_string()), content: SharedString::from(res), level: SharedString::from("INFO") });
         }
     });
@@ -714,6 +931,7 @@ async fn main() -> Result<(), slint::PlatformError> {
 
     let m_state_p = manager_state.clone();
     let poll_p = poll_addresses.clone();
+    let frozen_p = frozen_addresses.clone();
     let tx_p = tx.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(std::time::Duration::from_millis(500));
@@ -721,6 +939,13 @@ async fn main() -> Result<(), slint::PlatformError> {
             interval.tick().await;
             if let Ok(mgr_lock) = m_state_p.try_lock() { // Use try_lock
                 if let Some(mgr) = mgr_lock.as_ref() {
+                    // h4: Enforce frozen addresses (The Strobe)
+                    if let Ok(frozen) = frozen_p.try_lock() {
+                        for (addr, val) in frozen.iter() {
+                            let _ = mgr.write::<u32>(*addr, *val);
+                        }
+                    }
+                    
                     if let Ok(addrs_lock) = poll_p.try_lock() { // Use try_lock
                         for i in 0..std::cmp::min(addrs_lock.len(), 50) {
                             let (addr, vt) = addrs_lock[i].clone(); // Clone to avoid holding lock
@@ -747,5 +972,89 @@ async fn main() -> Result<(), slint::PlatformError> {
         while let Ok((i, v)) = rx.try_recv() { if let Some(mut e) = res_m.row_data(i) { e.value = SharedString::from(v); res_m.set_row_data(i, e); } }
     });
 
-    ui.run()
+    let run_res = ui.run();
+    
+    // SHUTDOWN SEQUENCE: Orbital Purge
+    let _ = sentry_proc.kill();
+    info!("SYSTEM >> Shutdown Sequence: Sentry Node Purged. Cleaning workspace...");
+    purge_existing_instances();
+    
+    run_res
+}
+
+async fn run_sentry() -> Result<(), slint::PlatformError> {
+    use tokio::net::windows::named_pipe::ServerOptions;
+    use tokio::io::AsyncReadExt;
+    
+    eprintln!("H4_SENTRY: System Node booting...");
+    let ui = DebugWindow::new()?;
+    eprintln!("H4_SENTRY: UI initialized. Listening on pipe h4_vision_debug...");
+    let logs_model = Rc::new(VecModel::<TerminalLog>::default());
+    ui.set_logs(ModelRc::from(logs_model.clone()));
+    
+    let ui_handle = ui.as_weak();
+    let dbg_model_ctrl = logs_model.clone();
+    
+    ui.on_clear_logs(move || { dbg_model_ctrl.set_vec(Vec::new()); });
+    
+    let dbg_model_copy = logs_model.clone();
+    ui.on_copy_all(move || {
+        let logs: Vec<String> = (0..dbg_model_copy.row_count()).filter_map(|i| dbg_model_copy.row_data(i).map(|d| format!("[{}] {}", d.timestamp, d.content))).collect();
+        let _ = fs::write("last_copy.txt", logs.join("\n"));
+    });
+
+    let dbg_model_errors = logs_model.clone();
+    ui.on_copy_errors(move || {
+        let logs: Vec<String> = (0..dbg_model_errors.row_count()).filter_map(|i| dbg_model_errors.row_data(i)).filter(|d| d.level == "ERROR").map(|d| format!("[{}] {}", d.timestamp, d.content)).collect();
+        let _ = fs::write("last_errors.txt", logs.join("\n"));
+    });
+
+    let dbg_model_md = logs_model.clone();
+    ui.on_export_md(move || {
+        let mut md = String::from("# H4_Sentry Debug Report\n\n| Timestamp | Level | Message |\n| :--- | :--- | :--- |\n");
+        for i in 0..dbg_model_md.row_count() { if let Some(d) = dbg_model_md.row_data(i) { md.push_str(&format!("| {} | **{}** | `{}` |\n", d.timestamp, d.level, d.content)); } }
+        let _ = fs::write("debug_report.md", md);
+    });
+
+    tokio::spawn(async move {
+        let server_options = ServerOptions::new();
+        loop {
+            if let Ok(mut server) = server_options.create(r"\\.\pipe\h4_vision_debug") {
+                let _ = server.connect().await;
+                loop {
+                    let mut len_buf = [0u8; 4];
+                    if server.read_exact(&mut len_buf).await.is_err() { break; }
+                    let len = u32::from_le_bytes(len_buf) as usize;
+                    let mut data = vec![0u8; len];
+                    if server.read_exact(&mut data).await.is_err() { break; }
+                    
+                    if let Ok(msg) = serde_json::from_slice::<SentryMessage>(&data) {
+                        let u_weak = ui_handle.clone();
+                        let _ = slint::invoke_from_event_loop(move || {
+                            if let Some(u) = u_weak.upgrade() {
+                                match msg {
+                                    SentryMessage::Log(log) => {
+                                        let model = u.get_logs();
+                                        if let Some(m) = model.as_any().downcast_ref::<VecModel<TerminalLog>>() {
+                                            m.push(TerminalLog {
+                                                timestamp: SharedString::from(log.timestamp),
+                                                content: SharedString::from(log.content),
+                                                level: SharedString::from(log.level),
+                                            });
+                                        }
+                                    },
+                                    SentryMessage::SetVisible(visible) => {
+                                        if visible { let _ = u.show(); } else { let _ = u.window().hide(); }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        }
+    });
+
+    slint::run_event_loop()
 }

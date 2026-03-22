@@ -61,12 +61,13 @@ export global H4Themes {
     ];
     in-out property <int> current_theme_idx: 0;
     in property <bool> is_mixed: false;
+    in-out property <bool> dev_mode: false;
+    in-out property <bool> drawer_open: false;
     
     out property <brush> active_accent: is_mixed ? mixed_accents[Math.mod(current_theme_idx, 5)] : solid_accents[Math.mod(current_theme_idx, 20)];
     out property <color> active_content: is_mixed ? #ffffff : accent_content_colors[Math.mod(current_theme_idx, 20)];
     in-out property <color> background: theme_backgrounds[Math.mod(current_theme_idx, 20)];
     in-out property <color> text_color: #dddddd;
-    in-out property <bool> dev_mode: false;
     callback theme_changed(int);
 }
 
@@ -158,13 +159,16 @@ component H4Dropdown inherits Rectangle {
     in-out property <int> selected_idx: 0;
     in-out property <string> selected_text: options[selected_idx];
     in-out property <bool> open: false;
-    z: open ? 1000 : 1; // High Z-order when open to override siblings
+    width: 200px; height: 32px; // Firm standard size
+    background: #151515; // Hard opaque background
+    border-radius: 4px;
+    z: open ? 10000 : 1;
     callback changed(string);
     
     dropdown_body := Rectangle {
         width: 100%; height: 100%;
-        background: H4Themes.background.brighter(10%);
-        border-radius: 4px; border-width: 1px; border-color: H4Themes.active_accent.darker(20%);
+        background: #1a1a1a; 
+        border-radius: 4px; border-width: 1.5px; border-color: H4Themes.active_accent.darker(20%);
         
         // RAISED FEEDBACK
         y: parent.pressed ? 1px : -2px;
@@ -196,18 +200,20 @@ component H4Dropdown inherits Rectangle {
         y: parent.height + 4px;
         width: parent.width;
         height: options.length * 28px;
-        background: H4Themes.background.darker(5%); // Solid dark theme
+        background: #0a0a0a; // Absolute black for popover
         border-radius: 4px; border-width: 1.5px; border-color: H4Themes.active_accent;
-        drop-shadow-blur: 15px; drop-shadow-color: #000;
-        z: 1001; 
+        drop-shadow-blur: 20px; drop-shadow-color: #000;
+        z: 99999; 
         
         // This TouchArea blocks clicks from passing through to elements behind the dropdown
         TouchArea { }
         
         VerticalLayout {
+            padding: 2px; // Minor inset for better aesthetics
             for opt[i] in options : Rectangle {
                 height: 28px;
                 background: touch_opt.has_hover ? H4Themes.active_accent.darker(60%) : transparent;
+                border-radius: 2px;
                 Text { 
                     x: 10px; text: opt; color: #ffffff; vertical-alignment: center; font-size: 13px; 
                     font-weight: (i == selected_idx) ? 800 : 400;
@@ -302,7 +308,7 @@ export component MainWindow inherits Window {
     title: "H4_GameHack";
     icon: @image-url("../../assets/logo.png");
     width: 1040px; height: 820px;
-    background: show_splash ? transparent : H4Themes.background;
+    background: show_splash ? transparent : #121212; // Hard-coded solid background to avoid Slint backend opacity issues
     no-frame: true;
 
     callback terminal_command(string);
@@ -316,11 +322,17 @@ export component MainWindow inherits Window {
     callback smart_scan_triggered();
     callback manual_scan_requested(string, string, string);
     callback start_manual_search(string, string, string, string);
-    callback targeted_smart_search(string);
+    callback targeted_smart_search(string, string);
     callback search_term_changed(string, string);
     callback refresh_results();
     callback workspace_search(string);
+    callback debug_mode_toggled(bool);
     callback cancel_scan();
+    callback find_pointers(string);
+
+    // NEW DIFFERENTIAL CALLBACKS
+    callback next_manual_scan(string, string, string);
+    callback reset_scan_session();
 
     in property <[ProcessInfo]> processes: [];
     in property <[ScanEntry]> scan_results: [];
@@ -337,6 +349,15 @@ export component MainWindow inherits Window {
     in-out property <bool> show_smart_scan_warning: false;
     in-out property <bool> dont_show_scan_warning: false;
     in-out property <bool> scanning_active: false;
+    
+    // DIFFERENTIAL SCAN STATE
+    in-out property <bool> scan_session_active: false;
+    in-out property <bool> show_guide_modal: false;
+    in-out property <int> guide_step_idx: 0;
+    in-out property <string> guide_target: "Health";
+    in-out property <string> guide_type: "4 Bytes";
+    in-out property <string> guide_val: "100";
+    in-out property <string> guide_criteria: "Exact Value";
 
     callback add_custom_signature(string, string, string, string);
     callback close_discovery_config();
@@ -399,7 +420,7 @@ export component MainWindow inherits Window {
                     background: H4Themes.dev_mode ? H4Themes.active_accent : #222;
                     border-radius: 2px;
                     Text { text: "DEBUG: " + (H4Themes.dev_mode ? "ON" : "OFF"); color: H4Themes.dev_mode ? #000 : #666; font-size: 9px; vertical-alignment: center; horizontal-alignment: center; font-weight: 900; }
-                    touch_dbg := TouchArea { clicked => { H4Themes.dev_mode = !H4Themes.dev_mode; } }
+                    touch_dbg := TouchArea { clicked => { H4Themes.dev_mode = !H4Themes.dev_mode; root.debug_mode_toggled(H4Themes.dev_mode); } }
                 }
             }
 
@@ -671,87 +692,96 @@ export component MainWindow inherits Window {
                     }
                     }
 
-                    // MANUAL SEARCH DRAWER
+                    // MANUAL RESEARCH DRAWER (DIFFERENTIAL ENGINE)
                     if manual_search_open : Rectangle {
-                        height: 185px;
-                        background: H4Themes.background.darker(15%);
-                        border-width: 1px; border-color: H4Themes.active_accent.darker(60%);
+                        height: 220px;
+                        background: #121215; // Solid opaque black drawer
+                        border-width: 1.5px; border-color: H4Themes.active_accent.darker(60%);
                         z: 50;
+                        border-radius: 8px;
 
                         VerticalBox {
                             padding: 15px; spacing: 10px;
-                            VerticalLayout {
-                            spacing: 15px;
                             
-                            // TARGETED SMART SEARCH
+                            // SECTION 1: TARGETED HEURISTICS
                             Rectangle {
-                                background: H4Themes.background.darker(10%);
-                                border-radius: 4px; border-width: 1px; border-color: #ffffff05;
+                                height: 75px; background: #ffffff05; border-radius: 4px; border-width: 1px; border-color: #ffffff08;
                                 VerticalBox {
-                                    padding: 12px; spacing: 8px;
-                                    Text { text: "TARGETED SMART SEARCH // HEURISTICS"; color: #666; font-size: 10px; font-weight: 900; }
+                                    padding: 10px; spacing: 8px;
+                                    Text { text: "TARGETED SMART SCAN // HEURISTICS"; color: #666; font-size: 10px; font-weight: 900; }
                                     HorizontalLayout {
                                         spacing: 12px;
                                         target_dropdown := H4Dropdown {
-                                            width: 200px; height: 32px;
+                                            width: 140px; height: 32px;
                                             options: ["Health", "Ammo", "Stamina", "Currency", "Mana", "XP"];
                                             selected_idx: 0;
                                         }
-                                        H4ButtonSolid {
-                                            text: "INITIATE TARGETED DISCOVERY"; width: 220px; height: 32px;
-                                            clicked => { root.targeted_smart_search(target_dropdown.selected_text); }
+                                        type_selector := H4Dropdown {
+                                            width: 160px; height: 32px;
+                                            options: ["Int32 (AoB)", "Float", "Double (f64)", "Short (i16)", "Byte"];
+                                            selected_idx: 0;
+                                        }
+                                        H4ButtonSolid { 
+                                            text: "INITIATE DISCOVERY"; width: 220px; height: 32px;
+                                            clicked => { root.targeted_smart_search(target_dropdown.selected_text, type_selector.selected_text); }
+                                        }
+                                        H4ButtonGhost { 
+                                            text: "GUIDE ME"; width: 100px; height: 32px;
+                                            clicked => { 
+                                                root.show_guide_modal = true;
+                                                root.guide_step_idx = 0; // Absolute reset
+                                            }
                                         }
                                     }
                                 }
                             }
 
-                            // MANUAL SCAN PARAMETERS
-                            VerticalLayout {
-                                spacing: 8px;
-                                Text { text: "MANUAL SCAN PARAMETERS // ACTIVE"; color: #666; font-size: 10px; font-weight: 900; }
-                                HorizontalLayout {
-                                    spacing: 12px;
-                                    alignment: start;
-                                    
-                                    search_val := LineEdit { 
-                                        placeholder-text: "Search Value..."; 
-                                        width: 140px; height: 32px;
-                                        font-size: 14px;
-                                    }
-                                    
-                                    size_dropdown := H4Dropdown { 
-                                        width: 120px; height: 32px;
-                                        options: ["1 Byte", "2 Bytes", "4 Bytes", "8 Bytes", "Float", "Double", "Custom AOB"]; 
-                                        selected_idx: 0;
-                                    }
-                                    
-                                    criteria_dropdown := H4Dropdown { 
-                                        width: 150px; height: 32px;
-                                        options: ["Exact Value", "Increased", "Decreased", "Changed", "Unchanged"];
-                                        selected_idx: 0;
-                                    }
+                            // SECTION 2: DIFFERENTIAL MANUAL SCAN (ITERATIVE)
+                            Rectangle {
+                                height: 85px; background: #ffffff05; border-radius: 4px; border-width: 1px; border-color: #ffffff08;
+                                VerticalBox {
+                                    padding: 10px; spacing: 8px;
+                                    Text { text: root.scan_session_active ? "DIFFERENTIAL REFINEMENT // PASS ACTIVE" : "MANUAL EXCAVATION // INITIAL SCAN"; color: #666; font-size: 10px; font-weight: 900; }
+                                    HorizontalLayout {
+                                        spacing: 12px;
+                                        
+                                        search_val := LineEdit { 
+                                            placeholder-text: "Search Value..."; width: 140px; height: 32px;
+                                            font-size: 14px;
+                                        }
+                                        
+                                        size_dropdown := H4Dropdown { 
+                                            width: 120px; height: 32px;
+                                            options: ["1 Byte", "2 Bytes", "4 Bytes", "8 Bytes", "Float", "Double", "Custom AOB"]; 
+                                            selected_idx: 2; // Default to 4 Bytes
+                                        }
+                                        
+                                        criteria_dropdown := H4Dropdown { 
+                                            width: 150px; height: 32px;
+                                            options: ["Exact Value", "Increased", "Decreased", "Changed", "Unchanged"];
+                                            selected_idx: 0;
+                                        }
+                                        
+                                        if !root.scan_session_active : H4ButtonSolid { 
+                                            text: "FIRST SCAN"; width: 110px; height: 32px;
+                                            clicked => { root.start_manual_search(search_val.text, size_dropdown.selected_text, criteria_dropdown.selected_text, "Manual"); }
+                                        }
 
-                                    H4ButtonSolid { 
-                                        text: root.scanning_active ? "STOP" : "SCAN"; 
-                                        width: 80px; height: 32px; 
-                                        accent: root.scanning_active ? #ff0000 : H4Themes.active_accent;
-                                        clicked => { 
-                                            if (root.scanning_active) {
-                                                root.cancel_scan();
-                                            } else {
-                                                root.start_manual_search(
-                                                    search_val.text, 
-                                                    size_dropdown.selected_text, 
-                                                    criteria_dropdown.selected_text, 
-                                                    "Manual"
-                                                ); 
+                                        if root.scan_session_active : HorizontalLayout {
+                                            spacing: 8px;
+                                            H4ButtonNeon { 
+                                                text: "NEXT SCAN"; width: 110px; height: 32px;
+                                                clicked => { root.next_manual_scan(criteria_dropdown.selected_text, search_val.text, size_dropdown.selected_text); }
                                             }
-                                        } 
-                                    } 
+                                            H4ButtonGhost { 
+                                                text: "RESET"; width: 80px; height: 32px;
+                                                clicked => { root.reset_scan_session(); }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
-      }
                     }
 
                     // SCAN RESULTS DISPLAY
@@ -822,6 +852,8 @@ export component MainWindow inherits Window {
                                             Text { height: 100%; text: res.label; color: #aaa; vertical-alignment: center; font-size: 13px; width: 120px; }
                                             Text { height: 100%; text: res.address; color: #666; vertical-alignment: center; font-family: "monospace"; font-size: 12px; }
                                             Rectangle { width: 100%; }
+                                            H4ButtonGhost { text: "PTR"; width: 40px; height: 24px; clicked => { root.find_pointers(res.address); } }
+                                            Rectangle { width: 10px; }
                                             Text { height: 100%; text: res.value; color: H4Themes.active_accent; vertical-alignment: center; font-weight: 900; font-size: 16px; }
                                         }
                                     }
@@ -855,6 +887,16 @@ export component MainWindow inherits Window {
                         text: profiles_open ? "PIDs" : "SAVE/LOAD"; width: 100px; height: 35px;
                         clicked => { profiles_open = !profiles_open; } 
                     }
+                    Rectangle { width: 5px; }
+                    H4ButtonGhost { 
+                        text: H4Themes.dev_mode ? "DEBUG: ON" : "DEBUG: OFF"; 
+                        width: 90px; height: 35px;
+                        border-color: H4Themes.dev_mode ? H4Themes.active_accent : #ffffff33;
+                        clicked => { 
+                            H4Themes.dev_mode = !H4Themes.dev_mode;
+                            root.debug_mode_toggled(H4Themes.dev_mode);
+                        } 
+                    }
                 }
             }
 
@@ -880,19 +922,19 @@ export component MainWindow inherits Window {
             
             // ASCII EMOTE (Bottom Right, Greyed out, Blended)
             Text {
-                text: H4Themes.dev_mode ? "t( ' . ' t )" : "(b'.')b";
+                text: H4Themes.drawer_open ? "t( ' . ' t )" : "(b'.')b";
                 color: touch_emote.has_hover ? H4Themes.active_accent : #ffffff55;
                 font-size: 14px;
                 x: parent.width - 160px;
                 y: (parent.height - self.height) / 2 + (touch_emote.pressed ? 2px : 0px);
-                touch_emote := TouchArea { clicked => { H4Themes.dev_mode = !H4Themes.dev_mode; } }
+                touch_emote := TouchArea { clicked => { H4Themes.drawer_open = !H4Themes.drawer_open; } }
                 animate color, y { duration: 100ms; }
             }
         }
 
         // DEV CONSOLE
         Rectangle {
-            height: H4Themes.dev_mode ? 200px : 0px;
+            height: H4Themes.drawer_open ? 200px : 0px;
             background: #000000;
             animate height { duration: 300ms; }
             VerticalBox {
@@ -1116,6 +1158,182 @@ export component MainWindow inherits Window {
                                 root.add_custom_signature(n_name.text, n_aliases.text, n_patterns.text, n_ptr_off.text);
                                 n_name.text = ""; n_aliases.text = ""; n_patterns.text = ""; n_ptr_off.text = "";
                             } 
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // INTERACTIVE GUIDE WIZARD (The Navigator)
+    if root.show_guide_modal : Rectangle {
+        width: 100%; height: 100%; z: 100000;
+        
+        // CLICK-OFF Background Closure
+        Rectangle {
+            width: 100%; height: 100%; background: #000000df;
+            TouchArea { clicked => { root.show_guide_modal = false; root.guide_step_idx = 0; } }
+        }
+        
+        Rectangle {
+            width: 500px; height: 420px;
+            background: #131313; // Solid Opaque
+            border-radius: 12px; border-width: 2px; border-color: H4Themes.active_accent;
+            clip: true;
+
+            VerticalBox {
+                padding: 30px; spacing: 10px;
+                
+                // HEADER AREA
+                HorizontalLayout {
+                    spacing: 15px;
+                    Text { text: "H4_PROTOCOL // GUIDED_DISCOVERY"; color: H4Themes.active_accent; font-size: 16px; font-weight: 900; vertical-alignment: center; }
+                    Rectangle {} // Spacer
+                    Text { text: "PHASE " + (root.guide_step_idx + 1) + " / 4"; color: #0f0; font-family: "monospace"; vertical-alignment: center; font-weight: 900; }
+                    Rectangle { width: 10px; }
+                    
+                    // ESCAPE HATCH (Close Button)
+                    Rectangle {
+                        width: 24px; height: 24px; border-radius: 4px; background: touch_close_guide.has_hover ? #ff0000 : #ffffff11;
+                        Text { text: "✕"; color: white; vertical-alignment: center; horizontal-alignment: center; font-weight: 800; font-size: 14px; }
+                        touch_close_guide := TouchArea { clicked => { root.show_guide_modal = false; root.guide_step_idx = 0; } }
+                    }
+                }
+
+                // STEP INDICATOR (Visual Progress)
+                HorizontalLayout {
+                    height: 4px; spacing: 4px;
+                    for i in 4 : Rectangle {
+                        height: 100%; // Do not specify width, allow implicit layout distribution
+                        background: (i <= root.guide_step_idx) ? H4Themes.active_accent : #222;
+                        border-radius: 2px;
+                    }
+                }
+
+                Rectangle { height: 10px; } // Spacer
+
+                if root.guide_step_idx == 0 : VerticalBox {
+                    spacing: 15px;
+                    Text { text: "[ STEP 1: TARGET IDENTIFICATION ]"; color: white; font-size: 18px; font-weight: 800; }
+                    Text { 
+                        text: "LOCKED ON ESSENCE: Choose your tactical objective.";
+                        color: #aaa; wrap: word-wrap; font-size: 12px; font-family: "monospace";
+                    }
+                    guid_target_drop := H4Dropdown {
+                        width: 100%; height: 32px;
+                        options: ["Health", "Ammo", "Stamina", "Currency", "Mana", "XP", "Custom"];
+                        selected_text: root.guide_target;
+                        changed(val) => { root.guide_target = val; }
+                    }
+                    Text { text: "HINT: Most volatility trackers like Health use 4-byte patterns."; color: #444; font-size: 10px; }
+                }
+
+                if root.guide_step_idx == 1 : VerticalBox {
+                    spacing: 15px;
+                    Text { text: "[ STEP 2: DATA PROFILING ]"; color: white; font-size: 18px; font-weight: 800; }
+                    Text { 
+                        text: "MEMORY MODEL: Define the bit-depth and storage logic.";
+                        color: #aaa; wrap: word-wrap; font-size: 12px; font-family: "monospace";
+                    }
+                    HorizontalLayout {
+                        spacing: 12px;
+                        VerticalLayout {
+                            spacing: 5px;
+                            Text { text: "STORAGE TYPE"; color: #666; font-size: 10px; font-weight: 800; }
+                            H4Dropdown {
+                                width: 210px; height: 32px;
+                                options: ["1 Byte", "2 Bytes", "4 Bytes", "8 Bytes", "Float", "Double"];
+                                selected_text: root.guide_type;
+                                changed(val) => { root.guide_type = val; }
+                            }
+                        }
+                        VerticalLayout {
+                            spacing: 5px;
+                            Text { text: "SYNC CRITERIA"; color: #666; font-size: 10px; font-weight: 800; }
+                            H4Dropdown {
+                                width: 210px; height: 32px;
+                                options: ["Exact Value", "Unknown (Search Changes)"];
+                                selected_text: root.guide_criteria;
+                                changed(val) => { root.guide_criteria = val; }
+                            }
+                        }
+                    }
+                    Text { text: "HINT: 4 Bytes is the standard for modern game handles."; color: #444; font-size: 10px; }
+                }
+
+                if root.guide_step_idx == 2 : VerticalBox {
+                    spacing: 15px;
+                    Text { text: "[ STEP 3: INITIALIZATION ]"; color: white; font-size: 18px; font-weight: 800; }
+                    Text { 
+                        text: "STATE SYNCHRONIZATION: Input the current manifested value.";
+                        color: #aaa; wrap: word-wrap; font-size: 12px; font-family: "monospace";
+                    }
+                    VerticalLayout {
+                        spacing: 5px;
+                        Text { text: "CURRENT MANIFESTED VALUE"; color: #666; font-size: 11px; font-weight: 800; }
+                        LineEdit {
+                            text: root.guide_val;
+                            height: 32px;
+                            placeholder-text: "e.g. 100";
+                            edited(v) => { root.guide_val = v; }
+                        }
+                    }
+                }
+
+                if root.guide_step_idx == 3 : VerticalBox {
+                    spacing: 12px;
+                    Text { text: "[ STEP 4: ENGAGEMENT ]"; color: white; font-size: 18px; font-weight: 800; }
+                    Text { 
+                        text: "TACTICAL SUMMARY: Configuration sequence complete.";
+                        color: #aaa; wrap: word-wrap; font-size: 11px; font-family: "monospace";
+                    }
+                    Rectangle {
+                        height: 70px; background: H4Themes.active_accent.darker(90%); border-radius: 4px; border-width: 1px; border-color: H4Themes.active_accent;
+                        HorizontalLayout {
+                            padding: 15px; spacing: 15px;
+                            VerticalLayout {
+                                Text { text: "TARGET"; color: #666; font-size: 10px; }
+                                Text { text: root.guide_target; color: white; font-weight: 900; }
+                            }
+                            VerticalLayout {
+                                Text { text: "TYPE"; color: #666; font-size: 10px; }
+                                Text { text: root.guide_type; color: #888; }
+                            }
+                            VerticalLayout {
+                                Text { text: "INITIAL"; color: #666; font-size: 10px; }
+                                Text { text: root.guide_val; color: H4Themes.active_accent; font-weight: 900; }
+                            }
+                        }
+                    }
+                    Text { text: "After ENGAGE, perform an action in-game to change this value, then use NEXT SCAN."; color: #666; font-size: 10px; wrap: word-wrap; }
+                }
+
+                Rectangle { height: 10px; } // Static spacer constraint
+
+                // NAVIGATION CONTROLS
+                HorizontalLayout {
+                    spacing: 15px;
+                    H4ButtonGhost {
+                        text: "ABORT"; width: 100px;
+                        clicked => { 
+                            root.show_guide_modal = false;
+                            root.guide_step_idx = 0;
+                        }
+                    }
+                    Rectangle {} // Implicit horizontal spacer
+                    if root.guide_step_idx > 0 : H4ButtonOutline {
+                        text: "PREV"; width: 80px;
+                        clicked => { root.guide_step_idx -= 1; }
+                    }
+                    if root.guide_step_idx < 3 : H4ButtonSolid {
+                        text: "NEXT"; width: 100px;
+                        clicked => { root.guide_step_idx += 1; }
+                    }
+                    if root.guide_step_idx == 3 : H4ButtonNeon {
+                        text: "ENGAGE SCAN"; width: 150px;
+                        clicked => {
+                            root.show_guide_modal = false;
+                            root.guide_step_idx = 0;
+                            root.start_manual_search(root.guide_val, root.guide_type, root.guide_criteria, "Manual");
                         }
                     }
                 }

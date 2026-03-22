@@ -1,56 +1,68 @@
-warning: unused variable: `region_timer`
-   --> h4_engine\src\aob.rs:100:21
-    |
-100 | ...     let region_timer = std::time::In...
-    |             ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_region_timer`
-    |
-    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
-
    Compiling h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)
-warning: `h4_engine` (lib) generated 1 warning (run `cargo fix --lib -p h4_engine` to apply 1 suggestion)
-error: failed to run custom build command for `h4_vision v0.1.0 (D:\PROJECTS\h4_GameHack\h4_vision)`
+error[E0382]: borrow of moved value: `ui_handle`
+   --> h4_vision\src\main.rs:703:19
+    |
+125 |     let ui_handle = ui.as_weak();
+    |         --------- move occurs because `ui_handle` has type `slint::Weak<MainWindow>`, which does not implement the `Copy` trait
+...
+664 |     ui.on_manual_scan_requested(move |addr, type_str, _val| {
+    |                                 --------------------------- value moved into closure here
+...
+694 |         if let Some(u) = ui_handle.upgrade() {
+    |                          --------- variable moved due to use in closure
+...
+703 |     let ui_save = ui_handle.clone();
+    |                   ^^^^^^^^^ value borrowed here after move
 
-Caused by:
-  process didn't exit successfully: `D:\PROJECTS\h4_GameHack\target\debug\build\h4_vision-39f4bc1af16f5a51\build-script-build` (exit code: 101)
-  --- stderr
-  error: The binding for the property 'layoutinfo-h' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
-     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:263:36
-      |
-  263 |                 for entry in logs: HorizontalLayout {
-      |                                    ^^^^^^^^^^^^^^^^^
-      |
-  error: The binding for the property 'layoutinfo-h' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
-     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:261:13
-      |
-  261 |             VerticalBox {
-      |             ^^^^^^^^^^^^
-  error: The binding for the property 'min-width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
-     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:261:13
-      |
-  261 |             VerticalBox {
-      |             ^^^^^^^^^^^^
-  error: The binding for the property 'viewport-width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
-     --> builtin:/fluent/scrollview.slint:174:18
-      |
-  174 |     flickable := Flickable {
-      |                  ^^^^^^^^^^
-  error: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
-  error: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
-     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:261:13
-      |
-  261 |             VerticalBox {
-      |             ^^^^^^^^^^^^
-  error: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
-     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:263:36
-      |
-  263 |                 for entry in logs: HorizontalLayout {
-      |                                    ^^^^^^^^^^^^^^^^^
-  error: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)
-     --> D:\PROJECTS\h4_GameHack\h4_vision\ui\main.slint:271:32
-      |
-  271 |                         width: parent.width - 80px;
-      |                                ^^^^^^^^^^^^^^^^^^^^
+error[E0382]: borrow of moved value: `all_scan_results`
+   --> h4_vision\src\main.rs:704:20
+    |
+218 |     let all_scan_results = Arc::new(Mutex::new(Vec::<h4_shared::ScanResult>::new()));
+    |         ---------------- move occurs because `all_scan_results` has type `Arc<std::sync::Mutex<Vec<ScanResult>>>`, which does not implement the `Copy` trait
+...
+664 |     ui.on_manual_scan_requested(move |addr, type_str, _val| {
+    |                                 --------------------------- value moved into closure here
+...
+683 |         let mut rm = all_scan_results.lock().unwrap();
+    |                      ---------------- variable moved due to use in closure
+...
+704 |     let res_save = all_scan_results.clone();
+    |                    ^^^^^^^^^^^^^^^^ value borrowed here after move
+    |
+help: consider cloning the value before moving it into the closure
+    |
+664 ~     let value = all_scan_results.clone();
+665 ~     ui.on_manual_scan_requested(move |addr, type_str, _val| {
+666 |         let addr_val = if addr.to_lowercase().starts_with("0x") {
+...
+683 |         
+684 ~         let mut rm = value.lock().unwrap();
+    |
 
-  thread 'main' (10028) panicked at h4_vision\build.rs:2:43:
-  called `Result::unwrap()` on an `Err` value: CompileError(["D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:263: The binding for the property 'layoutinfo-h' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:261: The binding for the property 'layoutinfo-h' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:261: The binding for the property 'min-width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "builtin:/fluent/scrollview.slint:174: The binding for the property 'viewport-width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:261: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:263: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)", "D:\\PROJECTS\\h4_GameHack\\h4_vision\\ui\\main.slint:271: The binding for the property 'width' is part of a binding loop (layoutinfo-h -> layoutinfo-h -> min-width -> flickable.viewport-width -> flickable-viewport.width -> width -> width -> width)"])
-  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error[E0382]: borrow of moved value: `poll_addresses`
+   --> h4_vision\src\main.rs:715:21
+    |
+212 |     let poll_addresses = Arc::new(Mutex::new(Vec::<(usize, h4_shared::ValueType)>::new()));
+    |         -------------- move occurs because `poll_addresses` has type `Arc<std::sync::Mutex<Vec<(usize, ValueType)>>>`, which does not implement the `Copy` trait
+...
+664 |     ui.on_manual_scan_requested(move |addr, type_str, _val| {
+    |                                 --------------------------- value moved into closure here
+...
+684 |         let mut pm = poll_addresses.lock().unwrap();
+    |                      -------------- variable moved due to use in closure
+...
+715 |     let poll_load = poll_addresses.clone();
+    |                     ^^^^^^^^^^^^^^ value borrowed here after move
+    |
+help: consider cloning the value before moving it into the closure
+    |
+664 ~     let value = poll_addresses.clone();
+665 ~     ui.on_manual_scan_requested(move |addr, type_str, _val| {
+666 |         let addr_val = if addr.to_lowercase().starts_with("0x") {
+...
+684 |         let mut rm = all_scan_results.lock().unwrap();
+685 ~         let mut pm = value.lock().unwrap();
+    |
+
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `h4_vision` (bin "h4_vision") due to 3 previous errors

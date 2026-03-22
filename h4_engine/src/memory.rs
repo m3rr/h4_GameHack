@@ -1,7 +1,7 @@
 use std::ffi::c_void;
 use windows::Win32::Foundation::{CloseHandle, HANDLE, INVALID_HANDLE_VALUE, WIN32_ERROR};
 use windows::Win32::System::Diagnostics::Debug::{ReadProcessMemory, WriteProcessMemory};
-use windows::Win32::System::Threading::{OpenProcess, PROCESS_ALL_ACCESS};
+use windows::Win32::System::Threading::OpenProcess;
 use thiserror::Error;
 use log::{debug, error, info};
 
@@ -34,9 +34,12 @@ impl MemoryManager {
         info!("Attempting to attach to process with PID: {}", pid);
         
         unsafe {
-            let handle = OpenProcess(PROCESS_ALL_ACCESS, false, pid)
+            use windows::Win32::System::Threading::{PROCESS_QUERY_INFORMATION, PROCESS_VM_READ, PROCESS_VM_WRITE, PROCESS_VM_OPERATION};
+            let access_mask = PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION;
+            
+            let handle = OpenProcess(access_mask, false, pid)
                 .map_err(|e| {
-                    error!("Failed to open process {}: {:?}", pid, e);
+                    error!("SYSTEM >> Access Token Negotiation FAILURE {}: {:?}", pid, e);
                     MemoryError::OpenProcessFailed(WIN32_ERROR::from_error(&e).unwrap_or(WIN32_ERROR(0)).0)
                 })?;
 
@@ -123,6 +126,37 @@ impl MemoryManager {
 
         info!("Successfully wrote value to {:X}", address);
         Ok(())
+    }
+}
+
+impl Clone for MemoryManager {
+    fn clone(&self) -> Self {
+        use windows::Win32::System::Threading::GetCurrentProcess;
+        use windows::Win32::Foundation::{DuplicateHandle, DUPLICATE_SAME_ACCESS};
+
+        info!("SYSTEM >> MemoryManager Handle Replicator: Duplicating Process Handle (PID: {})", self.pid);
+        let mut new_handle = HANDLE::default();
+        unsafe {
+            let res = DuplicateHandle(
+                GetCurrentProcess(),
+                self.process_handle,
+                GetCurrentProcess(),
+                &mut new_handle,
+                0,
+                false,
+                DUPLICATE_SAME_ACCESS,
+            );
+            if res.is_err() || new_handle.is_invalid() {
+                error!("SYSTEM >> Handle Replication FATAL FAILURE: {:?} (PID: {}) Source: {:?}", res.err(), self.pid, self.process_handle.0);
+            } else {
+                info!("SYSTEM >> Handle Replication SUCCESS: PID: {} [Source: {:X} -> Target: {:X}]", self.pid, self.process_handle.0 as usize, new_handle.0 as usize);
+            }
+        }
+        
+        Self {
+            process_handle: new_handle,
+            pid: self.pid,
+        }
     }
 }
 

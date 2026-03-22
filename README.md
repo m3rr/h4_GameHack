@@ -49,7 +49,8 @@ If you accidentally target a critical system PID and blue-screen your rig, that 
 This project is licensed under the **GPL v3**. It is open and it is free, but you must respect the license if you decide to fork or distribute it.
 
 ## 🚀 Status
-This is definately a Beta build. It is spicy, it is experimental, and we are adding features constantly. If you find a bug, let me know! 
+Current Version: **0.5.0-Beta** (Stable Reconstruction)
+This is a Beta build. It is spicy, it is experimental, and we are adding features constantly. If you find a bug, let me know! 
 
 Stay glitchy.
 

@@ -12,6 +12,21 @@ pub enum ValueType {
     AOB,
 }
 
+impl ValueType {
+    pub fn size(&self) -> usize {
+        match self {
+            ValueType::Byte => 1,
+            ValueType::Int16 => 2,
+            ValueType::Int32 => 4,
+            ValueType::Int64 => 8,
+            ValueType::Float32 => 4,
+            ValueType::Float64 => 8,
+            ValueType::String => 1, // Base size
+            ValueType::AOB => 1,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ScanResult {
     pub address: usize,

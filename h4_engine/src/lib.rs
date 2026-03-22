@@ -4,6 +4,7 @@ pub mod discovery;
 pub mod manual;
 pub mod scripting;
 pub mod processes;
+pub mod differential;
 
 pub use memory::MemoryManager;
 pub use aob::AOBScanner;

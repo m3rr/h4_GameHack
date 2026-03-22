@@ -42,12 +42,12 @@ export const Home = () => {
             </p>
 
             <div className="mt-12 flex flex-wrap gap-4">
-              <a
-                href="https://github.com/m3rr/h4_GameHack/raw/main/h4_GameHack.exe"
+              <Link
+                to="/download"
                 className="px-8 py-3 bg-[var(--theme-primary)] text-[var(--theme-bg)] font-bold uppercase tracking-widest hover:skew-x-2 transition-transform cursor-pointer active:scale-95 no-underline"
               >
                 Download Suite
-              </a>
+              </Link>
               <a
                 href="https://github.com/m3rr/h4_GameHack"
                 target="_blank"
